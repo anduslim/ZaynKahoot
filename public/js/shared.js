@@ -43,3 +43,22 @@ function ordinal(n) {
   const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
+
+// Corrupted "shadow" mystery Pokémon: black silhouette of the image, purple glow and
+// swirling purple smoke. Add the class "purified" to the returned element to clear it.
+function shadowMonHTML(src, { style = '', puffs = 14 } = {}) {
+  const r = (a, b) => (a + Math.random() * (b - a)).toFixed(2);
+  const puff = (front) => `<span style="--l:${r(-5, 85)}%;--b:${r(-6, front ? 18 : 45)}%;--s:${r(front ? 22 : 28, front ? 38 : 52)}%;--x:${r(-35, 35)}%;--d:${r(2.6, 4.6)}s;--dl:-${r(0, 4.6)}s;--o:${front ? r(0.35, 0.6) : r(0.55, 0.9)}"></span>`;
+  const ember = () => `<i style="--l:${r(10, 90)}%;--d:${r(1.8, 3.4)}s;--dl:-${r(0, 3.4)}s;--x:${r(-30, 30)}px"></i>`;
+  const n = (k, f) => Array.from({ length: k }, f).join('');
+  const url = esc(`url("${src}")`);
+  return `<div class="shadowmon" style="${style}">
+    <div class="sm-aura"></div>
+    <div class="sm-smoke back">${n(puffs, () => puff(false))}</div>
+    <img class="sm-img" src="${esc(src)}" alt="Mystery Pokémon" onerror="this.parentNode.classList.add('noimg')">
+    <div class="sm-tint" style="-webkit-mask-image:${url};mask-image:${url}"></div>
+    <div class="sm-smoke front">${n(Math.round(puffs / 2), () => puff(true))}</div>
+    <div class="sm-embers">${n(10, ember)}</div>
+    <div class="sm-flash"></div>
+  </div>`;
+}

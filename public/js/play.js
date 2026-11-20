@@ -241,7 +241,7 @@ function startCatch(st) {
     <div class="bush" style="left:-8%"></div><div class="bush" style="right:-6%"></div>
     <div class="tag">??? · Mystery</div>
     <div class="shadow"></div>
-    <div class="mon sil" id="mon"><img src="${esc(img)}" onerror="this.outerHTML='<div class=&quot;fallback&quot;>?</div>'"></div>
+    <div class="mon" id="mon">${shadowMonHTML(img)}</div>
     <div class="outer"></div><div class="inner" id="ring"></div>
     <div class="chance" id="chance">Get ready…</div>
     <div class="sparkle" style="left:16%;bottom:22%"></div><div class="sparkle" style="right:20%;bottom:28%;animation-delay:.6s"></div>
@@ -318,7 +318,7 @@ function startCatch(st) {
       done = true;
       Sound.play('sparkle'); Sound.play('correct'); navigator.vibrate?.([80, 50, 80]);
       msg.textContent = 'Gotcha! ⭐';
-      mon.classList.remove('sil');
+      mon.querySelector('.shadowmon')?.classList.add('purified');
       mon.style.transform = 'translate(-50%,-100%) scale(1)'; mon.style.opacity = 1;
       ball.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' });
       root.querySelector('.tag').textContent = 'Caught it!';

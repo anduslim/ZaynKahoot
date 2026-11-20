@@ -135,6 +135,9 @@ body { overflow: hidden; }
 .catch-host { display: grid; grid-template-columns: 34vw 1fr; gap: 3vw; flex: 1; min-height: 0; }
 .catch-mon { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh; }
 .catch-mon img { max-width: 30vw; max-height: 50vh; animation: floaty 2.4s ease-in-out infinite; }
+.catch-mon .shadowmon { animation: floaty 2.4s ease-in-out infinite; }
+.catch-mon .shadowmon img { max-width: none; max-height: none; animation: none; }
+.feature .shadowmon { animation: floaty 2.6s ease-in-out infinite; }
 .cgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.4vh; align-content: start; }
 .ccard { background: var(--panel); border-radius: 2vh; padding: 1.2vh; display: flex; align-items: center; gap: 1vw; transition: background .3s; }
 .ccard .nm { font-family: var(--display); font-size: 2.4vh; font-weight: 600; }

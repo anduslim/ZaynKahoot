@@ -262,7 +262,7 @@ async function showcase(st) {
   Sound.music('question');
   if (qq.type === 'pokemon') {
     view(`<div class="screen">${qHead(st, false)}
-      <div class="feature" id="feat"><img class="mystery" src="${esc(qq.mysteryImg)}" style="max-height:28vh" onerror="this.style.display='none'"></div>
+      <div class="feature" id="feat">${shadowMonHTML(qq.mysteryImg, { style: 'width:26vh' })}</div>
       ${optionsGrid(st)}</div>`);
     const tiles = [...stage.querySelectorAll('.ptile')];
     tiles.forEach((el) => (el.style.opacity = 0));
@@ -295,7 +295,7 @@ function answering(st) {
   const qq = st.question;
   view(`<div class="screen">${qHead(st, true)}
     <div class="feature">${qq.type === 'pokemon'
-      ? `<img class="mystery" src="${esc(qq.mysteryImg)}" style="max-height:26vh" onerror="this.style.display='none'">`
+      ? `${shadowMonHTML(qq.mysteryImg, { style: 'width:24vh' })}`
       : qq.type === 'height' ? heightScene() : `<div class="emoji-big" style="font-size:22vh;animation:floaty 2s infinite">🤔</div>`}</div>
     ${optionsGrid(st)}</div>`);
   if (qq.type === 'height') setTimeout(() => setHeight(60, '?'), 50);
@@ -355,7 +355,7 @@ function mgPlay(st) {
     view(`<div class="screen">
       <div class="qhead"><div class="q"><div class="kicker">Bonus mini game</div>Catch the Mystery! <span style="color:var(--yellow)" id="ctime"></span></div></div>
       <div class="catch-host">
-        <div class="catch-mon"><img class="mystery" src="${esc(S.mysteryImg || '/assets/pokemon/pikachu.png')}" onerror="this.outerHTML='<div class=&quot;bignum&quot;>?</div>'"><div class="hint">Who will catch it first?</div></div>
+        <div class="catch-mon">${shadowMonHTML(S.mysteryImg || '/assets/pokemon/pikachu.png', { style: 'width:min(28vw,44vh)', puffs: 18 })}<div class="hint">Who will catch it first?</div></div>
         <div class="cgrid" id="cgrid"></div>
       </div></div>`);
     renderCatchCards(st);
