@@ -206,7 +206,7 @@ function answerPad(st) {
   } else {
     pad = `<div class="pad">${q.options.map((o, i) => {
       let mid = '';
-      if (q.type === 'hero' && o.img) mid = imgOrTile(o.img, o.label, 'ph');
+      if ((q.type === 'hero' || q.type === 'photo') && o.img) mid = imgOrTile(o.img, o.label, 'ph');
       else if (o.emoji) mid = `<span class="em">${esc(o.emoji)}</span>`;
       else if (o.colors) mid = `<span class="swatch" style="background:linear-gradient(90deg,${o.colors[0]} 50%,${o.colors[1]} 50%)"></span>`;
       return `<button data-i="${i}" style="background:${OPT_COLORS[i]}"><span class="shape">${OPT_SHAPES[i]}</span>${mid}<span>${esc(o.label)}</span></button>`;

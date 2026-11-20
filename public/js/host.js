@@ -76,7 +76,7 @@ const q = () => S.question;
 
 function optionInner(o, type, i) {
   let lead = '';
-  if (type === 'hero' && o.img) lead = imgOrTile(o.img, o.label, 'thumb');
+  if ((type === 'hero' || type === 'photo') && o.img) lead = imgOrTile(o.img, o.label, 'thumb');
   else if (o.emoji) lead = `<span class="em">${esc(o.emoji)}</span>`;
   else if (type === 'colour' && o.colors) lead = `<span class="swatch" style="background:linear-gradient(90deg,${o.colors[0]} 50%,${o.colors[1]} 50%)"></span>`;
   return `<span class="shape">${OPT_SHAPES[i]}</span>${lead}<span>${esc(o.label)}</span>`;
@@ -122,6 +122,10 @@ function featureHTML(type, o, mode) {
         <div class="blob" style="background:${o.colors?.[0] || '#2BA84A'}"></div>
         ${imgOrTile(o.img, o.label, 'hero-img')}
         <div class="banner" style="background:${o.colors?.[1] && type === 'hero' ? o.colors[0] : 'var(--green)'}">${esc(o.label)}${mode === 'reveal' ? '!' : '?'}</div>`;
+    case 'photo':
+      return `<div class="blob" style="background:var(--panel2)"></div>
+        ${imgOrTile(o.img, o.label, 'hero-img')}
+        <div class="banner" style="background:var(--green)">${esc(o.label)}${mode === 'reveal' ? '!' : '?'}</div>`;
     case 'animal':
       return `<div class="blob" style="background:${o.bg}"></div>
         <div class="emoji-big anim-${o.anim}">${esc(o.emoji)}</div>
@@ -161,7 +165,7 @@ function playFeatureSound(type, o) {
   if (type === 'animal') { Sound.play(o.sound); if (o.anim === 'stomp') setTimeout(() => stage.firstElementChild?.classList.add('shake-screen'), 450); }
   else if (type === 'height') Sound.play('boing');
   else if (type === 'countries') Sound.play('plane');
-  else if (type === 'hero') Sound.play('whoosh');
+  else if (type === 'hero' || type === 'photo') Sound.play('whoosh');
   else Sound.play('pop');
 }
 
@@ -333,7 +337,7 @@ async function reveal(st) {
     playFeatureSound(qq.type, right);
   }
   if (qq.type === 'colour') confetti(right.colors.concat(right.colors));
-  else if (qq.type === 'food' || qq.type === 'career') confetti();
+  else if (qq.type === 'food' || qq.type === 'career' || qq.type === 'photo') confetti();
   setTimeout(() => t === token && Sound.speak(qq.fact || ('The answer is ' + right.label)), 900);
 }
 
@@ -378,6 +382,7 @@ function mgPlay(st) {
   const mount = document.getElementById('mgc');
   const opts = {
     mount, players: st.players, heroImgs: S.heroImgs,
+    laps: S.games?.raceLaps, duration: S.games?.climbSeconds,
     sound: Sound,
     onStatus: (status) => socket.emit('host:mgStatus', status),
     onFinish: (res) => socket.emit('host:mgResults', res),

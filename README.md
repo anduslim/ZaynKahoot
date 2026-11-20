@@ -6,7 +6,7 @@ Party quiz for up to ~20 phones. The projector shows the stage and the phones ar
 
 ```bash
 npm install
-WIFI_SSID="YourWifi" WIFI_PASSWORD="secret" npm start
+WIFI_SSID="YourWifi" WIFI_PASSWORD="secret" ADMIN_PASSWORD="1234" npm start
 ```
 
 - **Projector:** open `https://<your-address>/host` in Chrome, click **Start hosting**, and press F for fullscreen.
@@ -33,14 +33,22 @@ If tilt isn't available on a phone, the steering screen also has big ◀ ▶ but
 Click a player in the lobby to remove them. **Reset** keeps players and zeroes scores.
 Questions read themselves aloud and option showcases play automatically. Press Space to move past reveals and leaderboards.
 
-## Edit content
-Everything is in `content.js`: question text, options, correct answers, time limits and the fun-fact lines.
+## Admin panel (edit questions)
+Open `/admin` (or **⚙ Admin** in the host controls) and log in with the admin password:
+`ADMIN_PASSWORD` if you set it, otherwise a 6-digit code printed in the server log at start-up.
+
+- **Questions:** edit the text, hint, fun fact, time limit, answers and the correct answer. Each question type has its own fields (pictures, emoji, colours, sounds, flags…).
+- **Reorder:** drag the ⠿ handle, or use the ↑ ↓ buttons (works on phones).
+- **Switch questions on/off** without deleting them, duplicate them, or add new ones. The *Picture answers* type is good for photo questions; upload photos from the picture picker.
+- **Settings:** finale game, race laps, tower and catch time limits, bonus points, height photo.
+- The **Run order** panel shows the whole show: questions, mini games, finale and podium.
+
+Saving in the lobby goes live straight away. Saving during a game waits for the next game (or press **Restart the game now**; players are kept).
+Edits and uploaded photos are saved in `data/` (`DATA_DIR`). On Olares, mount persistent storage at `/app/data`, or edits are lost when the container is rebuilt.
+**Restore the original questions** (Settings) goes back to `content.js`.
+
+## Files
+`content.js` holds the original questions; the admin panel never changes it.
 - Zayn photos: `public/assets/zayn/`
 - Pokémon images: `public/assets/pokemon/` (see the txt file there for file names)
 - Optional real sounds or music: `public/assets/sounds/`
-
-## Scoring
-- **Normal questions:** a correct answer scores 500–1000 points; faster answers score more.
-- **Questions followed by a mini game:** a correct answer scores a flat 1000.
-- **Mini game bonus by finishing place:** 600, 500, 400, 320, … with 100 for taking part.
-- **Final race:** bonuses are multiplied by 1.5.

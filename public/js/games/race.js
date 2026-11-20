@@ -2,13 +2,13 @@
 import * as THREE from 'three';
 import { mesh, toon, labelSprite, canvasTexture, makeRenderer, fit, frameCamera, disposeScene, INPUT_TIMEOUT } from './toon.js';
 
-const LAPS = 3;
 const HW = 4.6;              // half track width
 const MAX = 18, ACC = 14, TURN = 2.6, ASSIST = 1.1, OFF_MAX = 7;
 const TIMEOUT = 150, GRACE = 20;
 const PTS = [[-30, -16], [-6, -20.5], [14, -18], [32, -14], [38.5, 0], [30, 14], [12, 11], [2, 20], [-18, 20.5], [-34, 12], [-39, -4]];
 
-export function startRace({ mount, players, sound, onStatus, onFinish }) {
+export function startRace({ mount, players, sound, onStatus, onFinish, laps = 3 }) {
+  const LAPS = laps;
   const renderer = makeRenderer(mount);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#5B3A23');

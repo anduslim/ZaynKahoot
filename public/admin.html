@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zayn's Kahoot — Admin</title>
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<div id="login" class="login hidden">
+  <form class="login-card" id="loginForm">
+    <h1 class="brand display"><span class="z">Zayn's</span> <span class="k">Kahoot</span></h1>
+    <p>Admin panel</p>
+    <input id="pw" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Admin password" autofocus>
+    <div class="err" id="loginErr"></div>
+    <button class="btn primary" type="submit">Open</button>
+    <small>The password is <b>ADMIN_PASSWORD</b>, or the code printed in the server log when it starts.</small>
+  </form>
+</div>
+
+<div id="app" class="hidden">
+  <header class="top">
+    <div class="title"><span class="brand display"><span class="z">Zayn's</span> <span class="k">Kahoot</span></span><span class="tag">Admin</span></div>
+    <div class="status" id="status"></div>
+    <div class="actions">
+      <a class="btn ghost" href="/host" target="_blank">Open host ↗</a>
+      <button class="btn primary" id="save" disabled>Saved ✓</button>
+    </div>
+  </header>
+  <div class="banner hidden" id="banner"></div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="questions" class="on">Questions</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+  <main class="layout">
+    <section id="questionsTab">
+      <div class="list" id="list"></div>
+      <div class="add" id="add"></div>
+    </section>
+    <section id="settingsTab" class="hidden"></section>
+    <aside class="order"><h3>Run order</h3><ol id="order"></ol></aside>
+  </main>
+</div>
+
+<div id="picker" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h3>Choose a picture</h3><button class="btn ghost" id="pickClose">Close</button></div>
+    <div class="modal-tools">
+      <label class="btn">⬆ Upload a photo<input type="file" id="upload" accept="image/png,image/jpeg,image/webp,image/gif" hidden></label>
+      <input id="pickFilter" placeholder="Search pictures…">
+    </div>
+    <div class="pick-grid" id="pickGrid"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/js/admin.js"></script>
+</body>
+</html>

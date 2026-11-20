@@ -8,7 +8,6 @@ import { mesh, toon, ink, labelSprite, canvasTexture, makeRenderer, fit, frameCa
 const FLOORS = 6;            // ground (0) .. roof (5)
 const FH = 3.2;              // floor height
 const HALF = 15.5;           // half width of the tower
-const DURATION = 90;
 const RUN = 6.2, CLIMB = 3.1, GRAVITY = 34, JUMP_T = 0.9;
 const DOOR_W = 2.8;
 const DOOR_CYCLE = 5.2, DOOR_WARN = 2.4, DOOR_OPEN = 3.3;   // closed → flashing at WARN → open at OPEN → closed at CYCLE
@@ -84,7 +83,8 @@ function doorState(d, t) {
   return k < DOOR_WARN ? 'closed' : k < DOOR_OPEN ? 'warn' : 'open';
 }
 
-export function startClimb({ mount, players, heroImgs = [], sound, onStatus, onFinish }) {
+export function startClimb({ mount, players, heroImgs = [], sound, onStatus, onFinish, duration = 90 }) {
+  const DURATION = duration;
   const L = makeLayout();
   const renderer = makeRenderer(mount);
   const scene = new THREE.Scene();

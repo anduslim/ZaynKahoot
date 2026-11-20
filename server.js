@@ -3,8 +3,20 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const QRCode = require('qrcode');
+const fs = require('fs');
+const crypto = require('crypto');
 const { Server } = require('socket.io');
-const content = require('./content');
+const store = require('./content-store');
+
+// Questions + settings: the admin panel's saved copy if there is one, otherwise content.js.
+// `edited` is the full list the admin edits (switched-off questions included); `content` is
+// what the running game uses. Edits saved mid-game wait in `pending` until the next game.
+let { content: edited, fromFile } = store.load();
+let content = store.live(edited);
+let pending = null;
+
+// Admin password: ADMIN_PASSWORD, or a random code printed below when the server starts.
+const ADMIN_KEY = process.env.ADMIN_PASSWORD || String(crypto.randomInt(100000, 1000000));
 
 const PORT = process.env.PORT || 3000;
 const WIFI = {
@@ -18,6 +30,7 @@ const server = http.createServer(app);
 const io = new Server(server, { pingInterval: 5000, pingTimeout: 8000 });
 
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 0 }));
+app.use('/uploads', express.static(store.UPLOAD_DIR, { maxAge: 0 }));
 app.use('/vendor/three', express.static(path.join(__dirname, 'node_modules/three')));
 app.use('/vendor/fredoka', express.static(path.join(__dirname, 'node_modules/@fontsource/fredoka')));
 app.use('/vendor/nunito', express.static(path.join(__dirname, 'node_modules/@fontsource/nunito')));
@@ -25,6 +38,69 @@ app.use('/vendor/socket.io-client', express.static(path.join(__dirname, 'node_mo
 app.get('/', (req, res) => res.redirect('/play'));
 app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public/host.html')));
 app.get('/play', (req, res) => res.sendFile(path.join(__dirname, 'public/play.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
+
+// ---------------------------------------------------------------- admin API
+const adminOnly = (req, res, next) => {
+  const k = String(req.get('x-admin-key') || '');
+  const ok = k.length === ADMIN_KEY.length && crypto.timingSafeEqual(Buffer.from(k), Buffer.from(ADMIN_KEY));
+  if (!ok) return res.status(401).json({ error: 'Wrong admin password' });
+  next();
+};
+const adminState = () => ({
+  content: pending || edited,
+  pending: !!pending,
+  savedToFile: fromFile,
+  phase: game.phase,
+  players: activePlayers().length,
+  wifi: !!WIFI.ssid,
+  publicUrl: process.env.PUBLIC_URL || '',
+  passwordFromEnv: !!process.env.ADMIN_PASSWORD,
+});
+app.get('/api/admin/content', adminOnly, (req, res) => res.json(adminState()));
+app.get('/api/admin/defaults', adminOnly, (req, res) => res.json(store.defaults()));
+app.put('/api/admin/content', adminOnly, express.json({ limit: '1mb' }), (req, res) => {
+  let c;
+  try { c = store.sanitize(req.body?.content); } catch (e) { return res.status(400).json({ error: e.message }); }
+  store.save(c); fromFile = true;
+  const restart = req.body?.restart === true;
+  if (game.phase === 'lobby' || restart) {
+    applyContent(c);
+    if (restart && game.phase !== 'lobby') resetGame(true);
+    else broadcast();
+  } else pending = c;                                   // applied when the host resets / starts a new game
+  res.json({ ok: true, applied: !pending, ...adminState() });
+});
+app.post('/api/admin/restore', adminOnly, (req, res) => {
+  store.clearSaved(); fromFile = false;
+  const c = store.defaults();
+  if (game.phase === 'lobby') { applyContent(c); broadcast(); } else pending = c;
+  res.json({ ok: true, ...adminState() });
+});
+// image upload for new questions: raw body, saved to DATA_DIR/uploads
+const IMG_TYPES = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'image/gif': '.gif' };
+app.post('/api/admin/upload', adminOnly, express.raw({ type: Object.keys(IMG_TYPES), limit: '12mb' }), (req, res) => {
+  const ext = IMG_TYPES[req.get('content-type')];
+  if (!ext || !req.body?.length) return res.status(400).json({ error: 'Send a PNG, JPG, WebP or GIF image' });
+  const base = String(req.query.name || 'photo').toLowerCase().replace(/\.[a-z0-9]+$/, '').replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'photo';
+  const file = `${base}-${Date.now().toString(36)}${ext}`;
+  fs.mkdirSync(store.UPLOAD_DIR, { recursive: true });
+  fs.writeFileSync(path.join(store.UPLOAD_DIR, file), req.body);
+  res.json({ ok: true, path: '/uploads/' + file });
+});
+// every picture the editor can pick from
+app.get('/api/admin/images', adminOnly, (req, res) => {
+  const walk = (dir, url) => {
+    let out = [];
+    if (!fs.existsSync(dir)) return out;
+    for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (f.isDirectory()) out = out.concat(walk(path.join(dir, f.name), `${url}/${f.name}`));
+      else if (/\.(png|jpe?g|webp|gif|svg)$/i.test(f.name)) out.push(`${url}/${f.name}`);
+    }
+    return out;
+  };
+  res.json([...walk(path.join(__dirname, 'public/assets'), '/assets'), ...walk(store.UPLOAD_DIR, '/uploads')].sort());
+});
 app.get('/qr.svg', async (req, res) => {
   try {
     const svg = await QRCode.toString(String(req.query.text || ''), { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
@@ -42,11 +118,17 @@ app.get('/config.json', (req, res) => {
 });
 
 // ---------------------------------------------------------------- game state
-const steps = [
-  ...content.questions.map((q, i) => ({ kind: 'question', qi: i })),
-  { kind: 'finale' },
-  { kind: 'final' },
-];
+let steps = [];
+function applyContent(c) {
+  edited = c; pending = null;
+  content = store.live(c);
+  steps = [
+    ...content.questions.map((q, i) => ({ kind: 'question', qi: i })),
+    ...(content.finale !== 'none' ? [{ kind: 'finale' }] : []),
+    { kind: 'final' },
+  ];
+}
+applyContent(edited);
 
 const BOT_NAMES = ['Robo Rex', 'Captain Byte', 'Zippy', 'Noodle', 'Turbo Tim', 'Sparkle', 'Bolt', 'Pixel Pat', 'Mango', 'Wobble'];
 // avatar choices (drawn by public/js/avatars.js; keep these lists in step with it)
@@ -62,6 +144,16 @@ function cleanAvatar(a) {
     acc: ACCS.includes(a.acc) ? a.acc : 'none',
     color: /^#[0-9a-fA-F]{6}$/.test(String(a.color)) ? a.color : COLORS[0],
   };
+}
+
+// New game (Reset button, or an admin "save and restart"); picks up any saved admin edits.
+function resetGame(keepPlayers) {
+  if (pending) applyContent(pending);
+  const old = game.players;
+  newGame();
+  if (keepPlayers) for (const [id, p] of old) { p.score = 0; p.lastGain = 0; p.answer = null; p.streak = 0; game.players.set(id, p); }
+  else for (const p of old.values()) if (p.socketId) io.to(p.socketId).emit('kicked');
+  broadcast();
 }
 
 let game;
@@ -125,6 +217,7 @@ function hostView() {
     isLast: game.step === steps.length - 1,
     heroImgs: (content.questions.find((x) => x.type === 'hero')?.options || []).map((o) => o.img),
     mysteryImg: content.questions.find((x) => x.type === 'pokemon')?.mysteryImg,
+    games: content.games,
   };
 }
 
@@ -194,7 +287,7 @@ function startMinigame(type) {
 }
 
 function playMinigame() {
-  const dur = { climb: 90000, catch: 60000, race: 120000 }[game.mg.type];
+  const dur = { climb: content.games.climbSeconds * 1000, catch: content.games.catchSeconds * 1000, race: 120000 }[game.mg.type];
   game.mg.endsAt = Date.now() + dur;
   if (game.mg.type === 'catch') {
     for (const p of activePlayers()) game.mg.status[p.id] = { balls: 3, state: 'aiming', caught: false, done: false };
@@ -360,11 +453,7 @@ io.on('connection', (socket) => {
   socket.on('host:bots', (n) => socket.data.host && addBots(Math.min(20, Number(n) || 5)));
   socket.on('host:reset', (keepPlayers) => {
     if (!socket.data.host) return;
-    const old = game.players;
-    newGame();
-    if (keepPlayers) for (const [id, p] of old) { p.score = 0; p.lastGain = 0; p.answer = null; p.streak = 0; game.players.set(id, p); }
-    else for (const p of old.values()) if (p.socketId) io.to(p.socketId).emit('kicked');
-    broadcast();
+    resetGame(keepPlayers);
   });
   socket.on('host:mgResults', (order) => {
     if (!socket.data.host || game.phase !== 'mg_play') return;
@@ -451,5 +540,7 @@ server.listen(PORT, () => {
   console.log(`\n  ${content.title} running`);
   console.log(`  Host screen : http://localhost:${PORT}/host`);
   console.log(`  Players     : http://localhost:${PORT}/play`);
+  console.log(`  Admin panel : http://localhost:${PORT}/admin  (password: ${process.env.ADMIN_PASSWORD ? 'from ADMIN_PASSWORD' : ADMIN_KEY})`);
+  console.log(`  Questions   : ${fromFile ? store.SAVE_FILE + ' (edited in the admin panel)' : 'content.js'}`);
   console.log(`  For phones (HTTPS needed for tilt on iPhone):  cloudflared tunnel --url http://localhost:${PORT}\n`);
 });
