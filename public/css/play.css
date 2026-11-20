@@ -64,13 +64,30 @@ input.txt { width: 100%; height: 54px; border-radius: 16px; border: 0; padding: 
 .catch .outer { position: absolute; left: 50%; top: 42%; width: 52vw; max-width: 260px; aspect-ratio: 1; border-radius: 50%; border: 3px solid rgba(255,255,255,.85); transform: translate(-50%, -50%); }
 .catch .inner { position: absolute; left: 50%; top: 42%; width: 52vw; max-width: 260px; aspect-ratio: 1; border-radius: 50%; border: 6px solid #8EF0A8; transform: translate(-50%, -50%) scale(1); }
 .catch .chance { position: absolute; left: 50%; top: 56%; transform: translateX(-50%); font-family: var(--display); font-size: 20px; font-weight: 700; background: rgba(0,0,0,.35); padding: 4px 16px; border-radius: 999px; white-space: nowrap; }
-.catch .ball { position: absolute; left: 50%; bottom: 9%; width: 34vw; max-width: 160px; aspect-ratio: 1; transform: translate(-50%, 0); will-change: transform; }
+.catch .ball { position: absolute; left: 50%; bottom: 9%; width: 34vw; max-width: 160px; aspect-ratio: 1; transform: translate(-50%, 0); will-change: transform; z-index: 2;
+  filter: drop-shadow(0 6px 6px rgba(0,0,0,.25)); }
+.catch .ball > div { position: absolute; inset: 0; }
+.catch .ball-body { will-change: transform; }
+.catch .ball-light { pointer-events: none; }
+.catch .ball-shadow { position: absolute; left: 50%; bottom: calc(9% - 10px); width: 26vw; max-width: 122px; height: 18px; border-radius: 50%; transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(0,0,0,.35), rgba(0,0,0,0) 70%); }
+/* wound-up curveball: glowing ring and sparkles around the ball */
+.catch .spin-ring { inset: -14% !important; border-radius: 50%; opacity: 0; transition: opacity .25s;
+  background: conic-gradient(from 0deg, rgba(255,233,120,0), rgba(255,233,120,.95), rgba(255,255,255,.9), rgba(255,233,120,0) 60%);
+  -webkit-mask: radial-gradient(circle, transparent 60%, #000 62%, #000 70%, transparent 72%); mask: radial-gradient(circle, transparent 60%, #000 62%, #000 70%, transparent 72%);
+  animation: spinring .5s linear infinite; }
+.catch.curve .spin-ring { opacity: 1; }
+@keyframes spinring { to { transform: rotate(360deg); } }
+.catch .spin-tag { position: absolute; left: 50%; bottom: calc(9% + min(34vw, 160px) + 16px); transform: translateX(-50%) scale(.6); opacity: 0; transition: opacity .2s, transform .25s cubic-bezier(.2,1.6,.4,1);
+  font-family: var(--display); font-weight: 700; font-size: 20px; color: #3a2a00; background: #FFE066; padding: 4px 14px; border-radius: 999px; white-space: nowrap; pointer-events: none; }
+.catch.curve .spin-tag { opacity: 1; transform: translateX(-50%) scale(1); }
+.catch.flying .spin-tag { opacity: 0; }
 .catch .sparkle { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: #FFF4A3; box-shadow: 0 0 14px 6px rgba(255,244,163,.8); animation: twinkle 1.6s ease-in-out infinite; }
 @keyframes twinkle { 0%,100% { opacity: .3 } 50% { opacity: 1 } }
 .catch .balls { position: absolute; right: 18px; bottom: max(18px, env(safe-area-inset-bottom)); display: flex; gap: 6px; }
-.catch .balls i { width: 22px; height: 22px; border-radius: 50%; background: #1D3B8F; border: 3px solid #fff; }
+.catch .balls i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #1b1b22; background: radial-gradient(circle at 50% 50%, #fff 0 18%, #1b1b22 19% 30%, transparent 31%), linear-gradient(#e3262b 0 44%, #1b1b22 44% 56%, #f4f6f9 56%); }
 .catch .balls i.used { opacity: .25; }
 .catch .help { position: absolute; left: 18px; bottom: max(18px, env(safe-area-inset-bottom)); font-family: var(--display); font-size: 17px; font-weight: 600; }
 .catch .msg { position: absolute; left: 0; right: 0; top: 24%; text-align: center; font-family: var(--display); font-size: 44px; font-weight: 700; color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,.35); pointer-events: none; }
-.ball.shake { animation: bshake .45s ease-in-out; }
+.ball.shake .ball-body { animation: bshake .45s ease-in-out; }
 @keyframes bshake { 0%,100% { rotate: 0deg } 30% { rotate: -22deg } 70% { rotate: 22deg } }

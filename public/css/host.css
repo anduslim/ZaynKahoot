@@ -142,7 +142,7 @@ body { overflow: hidden; }
 .ccard .nm { font-family: var(--display); font-size: 2.4vh; font-weight: 600; }
 .ccard .st { font-size: 1.8vh; font-weight: 800; color: var(--soft); }
 .ccard .balls { display: flex; gap: .4vw; }
-.ccard .balls i { width: 1.8vh; height: 1.8vh; border-radius: 50%; background: #1D3B8F; border: .3vh solid #fff; }
+.ccard .balls i { width: 1.9vh; height: 1.9vh; border-radius: 50%; border: .2vh solid #1b1b22; background: radial-gradient(circle at 50% 50%, #fff 0 18%, #1b1b22 19% 30%, transparent 31%), linear-gradient(#e3262b 0 44%, #1b1b22 44% 56%, #f4f6f9 56%); }
 .ccard .balls i.used { opacity: .2; }
 .ccard.caught { background: #1E7D3A; }
 .ccard.escaped { opacity: .55; }

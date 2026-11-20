@@ -187,7 +187,7 @@ function answerPad(st) {
 // ------------------------------------------------------------- mini games: steering
 function mgIntro(st) {
   const t = st.mg.type;
-  const txt = { climb: ['Hero Tower Escape!', 'Tilt your phone left and right to run. Ladders climb by themselves!'], race: ['Grand Prix!', 'Hold your phone flat-ish and tilt left and right to steer.'], catch: ['Catch the Mystery!', 'Swipe up to throw. Throw when the ring is small and green!'] }[t];
+  const txt = { climb: ['Hero Tower Escape!', 'Tilt your phone left and right to run. Ladders climb by themselves!'], race: ['Grand Prix!', 'Hold your phone flat-ish and tilt left and right to steer.'], catch: ['Catch the Mystery!', 'Circle the ball to spin it for a curveball, then swipe up when the ring is small and green!'] }[t];
   app.innerHTML = `${meBar(st)}<div class="center"><div class="big">${txt[0]}</div><div class="sub">${txt[1]}</div>
     ${t !== 'catch' ? `<div class="wheel" id="wheel"></div><div class="sub">${motionOK ? 'Try it now: the wheel follows your tilt' : 'Tilt not available. Use the big ◀ ▶ buttons in the game.'}</div>
       ${!motionOK ? '<button class="cta" id="perm">Turn on tilt</button>' : ''}` : '<div style="font-size:110px">📱⬆️</div>'}
@@ -223,10 +223,34 @@ function updateRacePlace() {
 }
 
 // ------------------------------------------------------------- mini game: catch
-const BALL_SVG = `<svg viewBox="0 0 100 100" width="100%" height="100%"><defs><clipPath id="bc"><circle cx="50" cy="50" r="46"/></clipPath></defs>
-  <circle cx="50" cy="50" r="46" fill="#1D3B8F"/><g clip-path="url(#bc)"><rect x="0" y="42" width="100" height="16" fill="#FFC93C"/><ellipse cx="34" cy="26" rx="16" ry="9" fill="#ffffff" opacity=".25"/></g>
-  <path d="M50 30 L55 44 L70 44 L58 53 L62 68 L50 59 L38 68 L42 53 L30 44 L45 44 Z" fill="#FFC93C" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
-  <circle cx="50" cy="50" r="46" fill="none" stroke="#fff" stroke-width="5"/></svg>`;
+// The ball is two layers: the body (red top, white bottom, black band, round button) spins,
+// while the lighting on top (shading, rim, gloss) stays put, so it reads as a lit 3D sphere.
+const BALL_BODY = `<svg viewBox="0 0 100 100" width="100%" height="100%"><defs>
+    <clipPath id="bclip"><circle cx="50" cy="50" r="47"/></clipPath>
+    <linearGradient id="bred" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4b4b"/><stop offset="1" stop-color="#d81e24"/></linearGradient>
+    <linearGradient id="bwht" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dfe5ec"/></linearGradient>
+  </defs>
+  <g clip-path="url(#bclip)">
+    <rect x="0" y="0" width="100" height="50" fill="url(#bred)"/>
+    <rect x="0" y="50" width="100" height="50" fill="url(#bwht)"/>
+    <rect x="0" y="45" width="100" height="10" fill="#1b1b22"/>
+  </g>
+  <circle cx="50" cy="50" r="15" fill="#1b1b22"/>
+  <circle cx="50" cy="50" r="10.5" fill="#f4f6f9"/>
+  <circle cx="50" cy="50" r="6.5" fill="none" stroke="#c9d0d8" stroke-width="1.6"/>
+  <circle cx="47" cy="47" r="2.4" fill="#fff"/>
+</svg>`;
+const BALL_LIGHT = `<svg viewBox="0 0 100 100" width="100%" height="100%"><defs>
+    <radialGradient id="bshade" cx="36%" cy="30%" r="72%"><stop offset=".45" stop-color="#000" stop-opacity="0"/><stop offset=".85" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></radialGradient>
+    <radialGradient id="bgloss" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="bbounce" cx="60%" cy="95%" r="40%"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <circle cx="50" cy="50" r="47" fill="url(#bshade)"/>
+  <circle cx="50" cy="50" r="47" fill="url(#bbounce)"/>
+  <ellipse cx="33" cy="25" rx="17" ry="10" transform="rotate(-30 33 25)" fill="url(#bgloss)"/>
+  <circle cx="22" cy="40" r="3" fill="#fff" opacity=".7"/>
+  <circle cx="50" cy="50" r="47" fill="none" stroke="#111" stroke-width="2.5" opacity=".85"/>
+</svg>`;
 
 function startCatch(st) {
   const img = st.question?.mysteryImg || '/assets/pokemon/pikachu.png';
@@ -245,9 +269,11 @@ function startCatch(st) {
     <div class="outer"></div><div class="inner" id="ring"></div>
     <div class="chance" id="chance">Get ready…</div>
     <div class="sparkle" style="left:16%;bottom:22%"></div><div class="sparkle" style="right:20%;bottom:28%;animation-delay:.6s"></div>
-    <div class="ball" id="ball">${BALL_SVG}</div>
+    <div class="ball-shadow"></div>
+    <div class="ball" id="ball"><div class="ball-body" id="ballBody">${BALL_BODY}</div><div class="ball-light">${BALL_LIGHT}</div><div class="spin-ring" id="spinRing"></div></div>
+    <div class="spin-tag" id="spinTag">Curveball ready!</div>
     <div class="msg" id="msg"></div>
-    <div class="help">Swipe up to throw</div>
+    <div class="help">Circle to spin · swipe up</div>
     <div class="balls" id="balls"></div>`;
   document.body.appendChild(root);
   const ring = root.querySelector('#ring'), ball = root.querySelector('#ball'), mon = root.querySelector('#mon');
@@ -255,11 +281,20 @@ function startCatch(st) {
   const drawBalls = () => { ballsEl.innerHTML = [0, 1, 2].map((i) => `<i class="${i < 3 - balls ? 'used' : ''}"></i>`).join(''); };
   drawBalls();
 
+  const body = root.querySelector('#ballBody'), spinTag = root.querySelector('#spinTag');
+  // spin: circling a finger around the ball winds it up; it keeps spinning until thrown
+  let spinAngle = 0, spinVel = 0, spinDir = 0, curve = false, lastT = performance.now();
+  const setCurve = (on) => { curve = on; root.classList.toggle('curve', on); };
+
   // shrinking ring: scale 1 -> 0.3 every 1.6s
   let scale = 1, raf;
   const t0 = performance.now();
   (function loop(now) {
     raf = requestAnimationFrame(loop);
+    const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+    if (!curve && !busy) spinVel *= Math.pow(0.04, dt);            // loose spins die out, a wound-up curveball keeps going
+    spinAngle += spinVel * dt;
+    body.style.transform = `rotate(${spinAngle}deg)`;
     if (busy) return;
     const ph = ((now - t0) % 1600) / 1600;
     scale = 1 - 0.7 * ph;
@@ -272,36 +307,70 @@ function startCatch(st) {
 
   const send = (state, caught = false) => socket.emit('catch', { balls, state, caught });
 
-  // gestures
-  let sy = null, sx = null, st0 = 0;
-  const start = (x, y) => { if (busy || done) return; sx = x; sy = y; st0 = performance.now(); };
+  // gestures: circle around the ball to spin it, swipe up (or tap low down) to throw
+  let sy = null, st0 = 0, prevA = null, wound = 0, trail = [];
+  const ballCentre = () => { const r = ball.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width]; };
+  const start = (x, y) => { if (busy || done) return; sy = y; st0 = performance.now(); prevA = null; wound = 0; trail = [[x, y, st0]]; };
+  const move = (x, y) => {
+    if (sy == null || busy || done) return;
+    const now = performance.now();
+    trail.push([x, y, now]); if (trail.length > 8) trail.shift();
+    const [cx, cy, w] = ballCentre();
+    const d = Math.hypot(x - cx, y - cy);
+    if (d < w * 0.25 || d > w * 1.6) { prevA = null; return; }      // only count circles drawn around the ball
+    const a = Math.atan2(y - cy, x - cx);
+    if (prevA != null) {
+      let da = a - prevA; if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
+      wound += da;
+      spinVel += (da * 180 / Math.PI) * 6;                             // the ball follows the finger
+      spinVel = Math.max(-1600, Math.min(1600, spinVel));
+      if (!curve && Math.abs(wound) > Math.PI * 1.5) {                  // about three quarters of a circle
+        spinDir = Math.sign(wound); setCurve(true);
+        spinVel = spinDir * 900;
+        Sound.play('sparkle'); navigator.vibrate?.(25);
+      }
+    }
+    prevA = a;
+  };
   const finish = (x, y) => {
     if (sy == null || busy || done) return;
-    const dy = sy - y, dt = performance.now() - st0;
+    const now = performance.now(), dy = sy - y, dt = now - st0;
+    const old = trail.find((p) => now - p[2] < 140) || trail[0];
+    const flick = old[1] - y > 40;                                       // fast upward flick at the end of a spin gesture
     const tap = Math.abs(dy) < 12 && dt < 350 && y > window.innerHeight * 0.65;
-    if (dy > 50 || tap) throwBall();
+    if ((dy > 50 && Math.abs(wound) < Math.PI) || flick || tap) throwBall();
     sy = null;
   };
   root.addEventListener('touchstart', (e) => { const t = e.touches[0]; start(t.clientX, t.clientY); }, { passive: true });
+  root.addEventListener('touchmove', (e) => { const t = e.touches[0]; move(t.clientX, t.clientY); }, { passive: true });
   root.addEventListener('touchend', (e) => { const t = e.changedTouches[0]; finish(t.clientX, t.clientY); });
-  root.addEventListener('mousedown', (e) => start(e.clientX, e.clientY));
-  root.addEventListener('mouseup', (e) => finish(e.clientX, e.clientY));
+  let mouseDown = false;
+  root.addEventListener('mousedown', (e) => { mouseDown = true; start(e.clientX, e.clientY); });
+  root.addEventListener('mousemove', (e) => { if (mouseDown) move(e.clientX, e.clientY); });
+  root.addEventListener('mouseup', (e) => { mouseDown = false; finish(e.clientX, e.clientY); });
 
   async function throwBall() {
     busy = true;
-    const s = scale;
-    const p = s < 0.45 ? 0.75 : s < 0.7 ? 0.45 : 0.2;
+    const s = scale, spun = curve;
+    root.classList.add('flying');
+    let p = s < 0.45 ? 0.75 : s < 0.7 ? 0.45 : 0.2;
+    if (spun) p = Math.min(0.9, p + 0.12);                             // curveball bonus
     Sound.play('whoosh');
     send('throwing');
-    // arc to the target
+    if (spun) { msg.textContent = 'Curveball!'; setTimeout(() => { if (msg.textContent === 'Curveball!') msg.textContent = ''; }, 700); }
+    else spinVel = 520;                                                 // a plain throw still tumbles
+    // arc to the target; a curveball swings out to the side and hooks back in
     const rect = ball.getBoundingClientRect(), mrect = mon.getBoundingClientRect();
-    const dx = 0, dy = (mrect.top + mrect.height * 0.55) - (rect.top + rect.height / 2);
+    const dy = (mrect.top + mrect.height * 0.55) - (rect.top + rect.height / 2);
+    const side = spun ? spinDir * Math.min(110, window.innerWidth * 0.26) : 0;
     ball.animate([
       { transform: 'translate(-50%,0) scale(1)' },
-      { transform: `translate(-50%,${dy * 0.6}px) scale(.55)`, offset: 0.5 },
+      { transform: `translate(calc(-50% + ${side}px),${dy * 0.45}px) scale(.62)`, offset: 0.4 },
+      { transform: `translate(calc(-50% + ${side * 0.6}px),${dy * 0.8}px) scale(.42)`, offset: 0.75 },
       { transform: `translate(-50%,${dy}px) scale(.32)` },
-    ], { duration: 520, easing: 'cubic-bezier(.3,.6,.4,1)', fill: 'forwards' });
-    await wait(520);
+    ], { duration: spun ? 680 : 520, easing: 'cubic-bezier(.3,.6,.4,1)', fill: 'forwards' });
+    await wait(spun ? 680 : 520);
+    setCurve(false); spinVel = 0; root.classList.remove('flying');
     mon.style.transform = 'translate(-50%,-100%) scale(0)'; mon.style.opacity = 0;
     Sound.play('pop');
     send('wobble');

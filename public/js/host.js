@@ -340,7 +340,7 @@ async function reveal(st) {
 // ---- mini games
 const MG_INFO = {
   climb: { title: 'Hero Tower Escape!', icon: '🏢', how: ['You are the superhero you picked', 'Tilt your phone left and right to run', 'Run into a ladder to climb up', 'Watch out for the patrol bots', 'First through the EXIT wins bonus points!'] },
-  catch: { title: 'Catch the Mystery!', icon: '⭐', how: ['Look at your phone', 'A mystery friend appears in the grass', 'Swipe up (or tap) to throw a ball', 'Throw when the ring is small and green', 'You have 3 balls. Fastest catch wins!'] },
+  catch: { title: 'Catch the Mystery!', icon: '⭐', how: ['Look at your phone', 'A mystery friend appears in the grass', 'Circle the ball with your finger to spin a curveball', 'Swipe up to throw when the ring is small and green', 'You have 3 balls. Fastest catch wins!'] },
   race: { title: 'Birthday Table Grand Prix!', icon: '🏎️', how: ['Your car drives itself', 'Tilt your phone left and right to steer', 'Stay between the chalk lines', 'Bumping the cake slows you down', '3 laps. Finishing place = bonus points!'] },
 };
 function mgIntro(st) {
