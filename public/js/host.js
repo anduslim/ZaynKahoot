@@ -262,9 +262,9 @@ async function showcase(st) {
   Sound.music('question');
   if (qq.type === 'pokemon') {
     view(`<div class="screen">${qHead(st, false)}
-      <div class="feature" id="feat">${shadowMonHTML(qq.mysteryImg, { style: 'width:26vh' })}</div>
+      <div class="feature" id="feat">${shadowMonHTML(qq.mysteryImg, { style: 'width:30vh' })}</div>
       ${optionsGrid(st)}</div>`);
-    cycleShadowMon(stage.querySelector('.shadowmon'), shadowLineup(qq), () => t === token);
+    startShadowLineup(qq);
     const tiles = [...stage.querySelectorAll('.ptile')];
     tiles.forEach((el) => (el.style.opacity = 0));
     for (const el of tiles) { if (t !== token) return; el.style.opacity = 1; el.classList.add('pop'); Sound.play('pop'); await sleep(140); }
@@ -296,15 +296,20 @@ function answering(st) {
   const qq = st.question;
   view(`<div class="screen">${qHead(st, true)}
     <div class="feature">${qq.type === 'pokemon'
-      ? `${shadowMonHTML(qq.mysteryImg, { style: 'width:24vh' })}`
+      ? shadowMonHTML(qq.mysteryImg, { style: 'width:28vh' })
       : qq.type === 'height' ? heightScene() : `<div class="emoji-big" style="font-size:22vh;animation:floaty 2s infinite">🤔</div>`}</div>
     ${optionsGrid(st)}</div>`);
   if (qq.type === 'height') setTimeout(() => setHeight(60, '?'), 50);
-  if (qq.type === 'pokemon') { const t = token; cycleShadowMon(stage.querySelector('.shadowmon'), shadowLineup(qq), () => t === token); }
+  if (qq.type === 'pokemon') startShadowLineup(qq);
 }
 
-// the mystery shadow plus its decoys, so the projector doesn't give the answer away
-const shadowLineup = (qq) => [qq.mysteryImg, ...(qq.shadowDecoys || [])].filter(Boolean);
+// Rotate the mystery shadow with its decoys (content.js shadowDecoys) until the phase
+// changes, so the projector doesn't give the answer away.
+function startShadowLineup(qq) {
+  const t = token;
+  const lineup = [qq.mysteryImg, ...(qq.shadowDecoys || [])].filter(Boolean);
+  cycleShadowMon(stage.querySelector('.shadowmon'), lineup, () => t === token);
+}
 
 // ---- reveal
 async function reveal(st) {
@@ -360,7 +365,7 @@ function mgPlay(st) {
     view(`<div class="screen">
       <div class="qhead"><div class="q"><div class="kicker">Bonus mini game</div>Catch the Mystery! <span style="color:var(--yellow)" id="ctime"></span></div></div>
       <div class="catch-host">
-        <div class="catch-mon">${shadowMonHTML(S.mysteryImg || '/assets/pokemon/pikachu.png', { style: 'width:min(28vw,44vh)', puffs: 18 })}<div class="hint">Who will catch it first?</div></div>
+        <div class="catch-mon">${shadowMonHTML(S.mysteryImg || '/assets/pokemon/pikachu.png', { style: 'width:min(30vw,48vh)', puffs: 18 })}<div class="hint">Who will catch it first?</div></div>
         <div class="cgrid" id="cgrid"></div>
       </div></div>`);
     renderCatchCards(st);

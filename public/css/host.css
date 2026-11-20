@@ -109,7 +109,6 @@ body { overflow: hidden; }
 .ptile.right { border-color: var(--yellow); background: var(--panel2); }
 .ptile.dim { opacity: .3; }
 .tile-fallback { display: flex; align-items: center; justify-content: center; text-align: center; font-family: var(--display); font-weight: 600; font-size: 2vh; color: #fff; background: rgba(255,255,255,.08); border-radius: 1vh; width: 100%; height: 100%; padding: .4vh; }
-.mystery { filter: brightness(0) drop-shadow(0 0 2vh rgba(255,255,255,.5)); }
 
 /* leaderboard */
 .board { display: flex; flex-direction: column; gap: 1.2vh; padding: 0 6vw; }
@@ -136,7 +135,7 @@ body { overflow: hidden; }
 .catch-mon { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh; }
 .catch-mon img { max-width: 30vw; max-height: 50vh; animation: floaty 2.4s ease-in-out infinite; }
 .catch-mon .shadowmon { animation: floaty 2.4s ease-in-out infinite; }
-.catch-mon .shadowmon img { max-width: none; max-height: none; animation: none; }
+.catch-mon .shadowmon .sm-img { max-width: none; max-height: none; animation: none; }
 .feature .shadowmon { animation: floaty 2.6s ease-in-out infinite; }
 .cgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.4vh; align-content: start; }
 .ccard { background: var(--panel); border-radius: 2vh; padding: 1.2vh; display: flex; align-items: center; gap: 1vw; transition: background .3s; }

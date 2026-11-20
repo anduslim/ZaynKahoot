@@ -64,30 +64,35 @@ function shadowMonHTML(src, { style = '', puffs = 14 } = {}) {
 }
 
 // Cycle a shadowMonHTML element through several images in a shuffled loop, with a smoky
-// swap between each. Stops by itself once keepGoing() returns false.
+// swap every `every` ms. The first image is random too, so the answer is never first by
+// default. Stops by itself once keepGoing() returns false or the element leaves the page.
 function cycleShadowMon(el, srcs, keepGoing, every = 2600) {
   if (!el || srcs.length < 2) return;
   const img = el.querySelector('.sm-img'), tint = el.querySelector('.sm-tint');
-  srcs.forEach((s) => { new Image().src = s; }); // preload so swaps don't flash
+  const alive = () => keepGoing() && el.isConnected;
   const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  let order = shuffle(srcs), i = 0;
-  const set = (src) => {
-    img.src = src; el.classList.remove('noimg');
+  const show = (src) => {
+    el.classList.remove('noimg');
+    img.src = src;
     const u = `url("${src}")`; tint.style.webkitMaskImage = u; tint.style.maskImage = u;
   };
-  set(order[0]);
-  (function next() {
+  srcs.forEach((s) => { new Image().src = s; }); // preload so swaps don't flash
+  let order = shuffle(srcs), i = 0;
+  show(order[0]);
+  const tick = () => setTimeout(() => {
+    if (!alive()) return;
+    el.classList.add('swapping');
     setTimeout(() => {
-      if (!keepGoing() || !el.isConnected) return;
-      el.classList.add('swapping');
-      setTimeout(() => {
-        if (!keepGoing() || !el.isConnected) return;
-        i++;
-        if (i >= order.length) { const last = order[order.length - 1]; do { order = shuffle(srcs); } while (order[0] === last); i = 0; }
-        set(order[i]);
-        el.classList.remove('swapping');
-        next();
-      }, 380);
-    }, every);
-  })();
+      if (!alive()) return;
+      if (++i >= order.length) { // new shuffled round, never repeating the last shape
+        const last = order[order.length - 1];
+        do order = shuffle(srcs); while (order[0] === last);
+        i = 0;
+      }
+      show(order[i]);
+      el.classList.remove('swapping');
+      tick();
+    }, 380);
+  }, every);
+  tick();
 }

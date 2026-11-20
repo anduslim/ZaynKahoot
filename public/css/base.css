@@ -47,21 +47,25 @@ button { font-family: var(--display); cursor: pointer; }
 .confetti i { position: absolute; top: -20px; width: 12px; height: 18px; border-radius: 3px; animation: fall linear forwards; }
 @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
 
-/* ---- corrupted "shadow" mystery Pokémon (see shadowMonHTML in shared.js) ---- */
-.shadowmon { position: relative; isolation: isolate; margin: 0 auto; }
-.shadowmon .sm-img { display: block; width: 100%; height: auto; position: relative; z-index: 2;
-  filter: brightness(0) drop-shadow(0 0 2px #f0b8ff) drop-shadow(0 0 9px #b44cff) drop-shadow(0 0 22px #6a0dad);
-  transition: filter 1.2s ease; }
-.shadowmon .sm-tint { position: absolute; inset: 0; z-index: 3; pointer-events: none;
-  -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+/* ---- corrupted "shadow" mystery Pokémon (see shadowMonHTML / cycleShadowMon in shared.js) ----
+   A square stage; the picture sits bottom-centre inside it, so every Pokémon stands on the
+   same ground whatever its shape. The tint is masked by the same picture, placed the same way. */
+.shadowmon { position: relative; isolation: isolate; aspect-ratio: 1; margin: 0 auto; }
+.shadowmon .sm-img, .shadowmon .sm-tint { position: absolute; inset: 0; width: 100%; height: 100%; transform-origin: 50% 90%;
+  transition: opacity .45s ease-out, transform .45s cubic-bezier(.2,1.4,.4,1), filter 1.2s ease; }
+.shadowmon .sm-img { z-index: 2; object-fit: contain; object-position: 50% 100%;
+  filter: brightness(0) drop-shadow(0 0 2px #f0b8ff) drop-shadow(0 0 9px #b44cff) drop-shadow(0 0 22px #6a0dad); }
+.shadowmon .sm-tint { z-index: 3; pointer-events: none; opacity: .9;
+  -webkit-mask-size: contain; mask-size: contain; -webkit-mask-position: 50% 100%; mask-position: 50% 100%;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   background: radial-gradient(circle at 30% 70%, rgba(150,40,230,.75), transparent 45%),
               radial-gradient(circle at 70% 30%, rgba(90,10,160,.7), transparent 50%),
               linear-gradient(160deg, #1a0630, #3b0a66 50%, #12031f);
-  background-size: 200% 200%; animation: sm-swirl 5s ease-in-out infinite alternate; opacity: .9; transition: opacity 1s; }
+  background-size: 200% 200%; animation: sm-swirl 5s ease-in-out infinite alternate; }
 .shadowmon .sm-aura { position: absolute; left: -10%; right: -10%; bottom: -12%; height: 40%; z-index: 0; border-radius: 50%;
   background: radial-gradient(ellipse at center, rgba(160,60,255,.75), rgba(90,10,170,.35) 45%, transparent 70%);
   animation: sm-pulse 1.8s ease-in-out infinite; transition: opacity 1s; }
-.shadowmon .sm-smoke { position: absolute; left: -25%; right: -25%; top: -30%; bottom: -8%; pointer-events: none; transition: opacity 1s; }
+.shadowmon .sm-smoke { position: absolute; left: -25%; right: -25%; top: -30%; bottom: -8%; pointer-events: none; transition: opacity 1.4s; }
 .shadowmon .sm-smoke.back { z-index: 1; }
 .shadowmon .sm-smoke.front { z-index: 4; }
 .shadowmon .sm-smoke span { position: absolute; left: var(--l); bottom: var(--b); width: var(--s); aspect-ratio: 1; border-radius: 50%;
@@ -73,23 +77,24 @@ button { font-family: var(--display); cursor: pointer; }
   background: #f3c6ff; box-shadow: 0 0 8px 3px #b44cff; opacity: 0; animation: sm-ember var(--d) ease-out var(--dl) infinite; }
 .shadowmon .sm-flash { position: absolute; inset: -30%; z-index: 6; border-radius: 50%; pointer-events: none; opacity: 0;
   background: radial-gradient(circle, #fff 0%, rgba(255,250,200,.9) 25%, rgba(255,255,255,0) 65%); }
+
+/* missing picture: smoke around a glowing "?" */
 .shadowmon.noimg .sm-img, .shadowmon.noimg .sm-tint { visibility: hidden; }
-/* swapping between lineup shadows: shape melts into the smoke, the next one rises out of it */
-.shadowmon .sm-img, .shadowmon .sm-tint { transform-origin: 50% 90%; }
-.shadowmon.swapping .sm-img, .shadowmon.swapping .sm-tint { opacity: 0; transform: scale(.82) translateY(4%); transition: opacity .35s ease-in, transform .35s ease-in; }
-.shadowmon:not(.swapping) .sm-tint { transition: opacity .45s ease-out, transform .45s cubic-bezier(.2,1.4,.4,1); }
-.shadowmon:not(.purified):not(.swapping) .sm-img { transition: opacity .45s ease-out, transform .45s cubic-bezier(.2,1.4,.4,1), filter 1.2s ease; }
-.shadowmon.swapping .sm-aura { transform: scale(1.3); }
-.shadowmon.noimg { min-height: 8em; }
 .shadowmon.noimg::after { content: '?'; position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center;
   font-family: var(--display); font-size: 6em; font-weight: 700; color: #e9b8ff; text-shadow: 0 0 20px #8a2be2; }
 
+/* lineup swap: the shape sinks into the smoke, the next one springs out of it */
+.shadowmon.swapping .sm-img, .shadowmon.swapping .sm-tint { opacity: 0; transform: scale(.82) translateY(4%); transition-duration: .35s; transition-timing-function: ease-in; }
+.shadowmon.swapping .sm-aura { transform: scale(1.3); }
+
 /* caught: smoke blows away, a flash, and the real colours come back */
 .shadowmon.purified .sm-img { filter: brightness(1) drop-shadow(0 0 0 transparent) drop-shadow(0 0 0 transparent) drop-shadow(0 0 0 transparent); }
-.shadowmon.purified .sm-tint, .shadowmon.purified .sm-aura, .shadowmon.purified .sm-embers { opacity: 0; }
-.shadowmon.purified .sm-smoke { opacity: 0; transition: opacity 1.4s; }
-.shadowmon.purified .sm-smoke span { animation-duration: 1.2s; }
+.shadowmon.purified .sm-tint, .shadowmon.purified .sm-aura, .shadowmon.purified .sm-embers, .shadowmon.purified .sm-smoke { opacity: 0; }
 .shadowmon.purified .sm-flash { animation: sm-flash 1.1s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .shadowmon .sm-smoke span, .shadowmon .sm-embers i, .shadowmon .sm-tint, .shadowmon .sm-aura { animation-duration: 12s; }
+}
 
 @keyframes sm-rise {
   0% { transform: translate(0, 0) scale(.35); opacity: 0; }
