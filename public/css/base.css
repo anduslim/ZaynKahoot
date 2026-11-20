@@ -74,6 +74,12 @@ button { font-family: var(--display); cursor: pointer; }
 .shadowmon .sm-flash { position: absolute; inset: -30%; z-index: 6; border-radius: 50%; pointer-events: none; opacity: 0;
   background: radial-gradient(circle, #fff 0%, rgba(255,250,200,.9) 25%, rgba(255,255,255,0) 65%); }
 .shadowmon.noimg .sm-img, .shadowmon.noimg .sm-tint { visibility: hidden; }
+/* swapping between lineup shadows: shape melts into the smoke, the next one rises out of it */
+.shadowmon .sm-img, .shadowmon .sm-tint { transform-origin: 50% 90%; }
+.shadowmon.swapping .sm-img, .shadowmon.swapping .sm-tint { opacity: 0; transform: scale(.82) translateY(4%); transition: opacity .35s ease-in, transform .35s ease-in; }
+.shadowmon:not(.swapping) .sm-tint { transition: opacity .45s ease-out, transform .45s cubic-bezier(.2,1.4,.4,1); }
+.shadowmon:not(.purified):not(.swapping) .sm-img { transition: opacity .45s ease-out, transform .45s cubic-bezier(.2,1.4,.4,1), filter 1.2s ease; }
+.shadowmon.swapping .sm-aura { transform: scale(1.3); }
 .shadowmon.noimg { min-height: 8em; }
 .shadowmon.noimg::after { content: '?'; position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center;
   font-family: var(--display); font-size: 6em; font-weight: 700; color: #e9b8ff; text-shadow: 0 0 20px #8a2be2; }

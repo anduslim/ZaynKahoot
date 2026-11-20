@@ -264,6 +264,7 @@ async function showcase(st) {
     view(`<div class="screen">${qHead(st, false)}
       <div class="feature" id="feat">${shadowMonHTML(qq.mysteryImg, { style: 'width:26vh' })}</div>
       ${optionsGrid(st)}</div>`);
+    cycleShadowMon(stage.querySelector('.shadowmon'), shadowLineup(qq), () => t === token);
     const tiles = [...stage.querySelectorAll('.ptile')];
     tiles.forEach((el) => (el.style.opacity = 0));
     for (const el of tiles) { if (t !== token) return; el.style.opacity = 1; el.classList.add('pop'); Sound.play('pop'); await sleep(140); }
@@ -299,7 +300,11 @@ function answering(st) {
       : qq.type === 'height' ? heightScene() : `<div class="emoji-big" style="font-size:22vh;animation:floaty 2s infinite">🤔</div>`}</div>
     ${optionsGrid(st)}</div>`);
   if (qq.type === 'height') setTimeout(() => setHeight(60, '?'), 50);
+  if (qq.type === 'pokemon') { const t = token; cycleShadowMon(stage.querySelector('.shadowmon'), shadowLineup(qq), () => t === token); }
 }
+
+// the mystery shadow plus its decoys, so the projector doesn't give the answer away
+const shadowLineup = (qq) => [qq.mysteryImg, ...(qq.shadowDecoys || [])].filter(Boolean);
 
 // ---- reveal
 async function reveal(st) {

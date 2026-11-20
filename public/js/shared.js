@@ -62,3 +62,32 @@ function shadowMonHTML(src, { style = '', puffs = 14 } = {}) {
     <div class="sm-flash"></div>
   </div>`;
 }
+
+// Cycle a shadowMonHTML element through several images in a shuffled loop, with a smoky
+// swap between each. Stops by itself once keepGoing() returns false.
+function cycleShadowMon(el, srcs, keepGoing, every = 2600) {
+  if (!el || srcs.length < 2) return;
+  const img = el.querySelector('.sm-img'), tint = el.querySelector('.sm-tint');
+  srcs.forEach((s) => { new Image().src = s; }); // preload so swaps don't flash
+  const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  let order = shuffle(srcs), i = 0;
+  const set = (src) => {
+    img.src = src; el.classList.remove('noimg');
+    const u = `url("${src}")`; tint.style.webkitMaskImage = u; tint.style.maskImage = u;
+  };
+  set(order[0]);
+  (function next() {
+    setTimeout(() => {
+      if (!keepGoing() || !el.isConnected) return;
+      el.classList.add('swapping');
+      setTimeout(() => {
+        if (!keepGoing() || !el.isConnected) return;
+        i++;
+        if (i >= order.length) { const last = order[order.length - 1]; do { order = shuffle(srcs); } while (order[0] === last); i = 0; }
+        set(order[i]);
+        el.classList.remove('swapping');
+        next();
+      }, 380);
+    }, every);
+  })();
+}

@@ -46,6 +46,9 @@ module.exports = {
       timeLimit: 30,
       minigame: 'catch',
       mysteryImg: '/assets/pokemon/pikachu.png', // shown as a black silhouette until caught
+      // decoy shadows the projector cycles through with the mystery one during the question,
+      // so the big screen doesn't give the answer away
+      shadowDecoys: ['charmander', 'squirtle', 'eevee', 'jigglypuff', 'gengar'].map((n) => `/assets/pokemon/${n}.png`),
     },
     {
       id: 'animal',
