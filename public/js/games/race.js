@@ -1,6 +1,6 @@
 // Birthday Table Grand Prix — top-down tabletop racer in cartoon 3D.
 import * as THREE from 'three';
-import { mesh, toon, labelSprite, canvasTexture, makeRenderer, fit } from './toon.js';
+import { mesh, toon, labelSprite, canvasTexture, makeRenderer, fit, frameCamera, disposeScene, INPUT_TIMEOUT } from './toon.js';
 
 const LAPS = 3;
 const HW = 4.6;              // half track width
@@ -13,8 +13,7 @@ export function startRace({ mount, players, sound, onStatus, onFinish }) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#5B3A23');
   const camera = new THREE.PerspectiveCamera(38, 16 / 9, 0.1, 400);
-  camera.position.set(9.5, 84, 44);
-  camera.lookAt(9.5, 0, 2.5);
+  frameCamera(camera, [9.5, 84, 44], [9.5, 0, 2.5]); // aimed right of centre: the standings panel covers the right edge
   const resize = () => fit(renderer, camera, mount);
   resize(); window.addEventListener('resize', resize);
 
@@ -74,12 +73,12 @@ export function startRace({ mount, players, sound, onStatus, onFinish }) {
   // start / finish line
   const chk = canvasTexture(128, 32, (c) => { for (let i = 0; i < 8; i++) for (let j = 0; j < 2; j++) { c.fillStyle = (i + j) % 2 ? '#111' : '#fff'; c.fillRect(i * 16, j * 16, 16, 16); } });
   const startLine = new THREE.Mesh(new THREE.PlaneGeometry(HW * 2, 1.4), new THREE.MeshBasicMaterial({ map: chk }));
-  startLine.rotation.x = -Math.PI / 2; startLine.rotation.z = -Math.atan2(T[0].x, T[0].z) + Math.PI / 2;
-  startLine.rotation.order = 'YXZ'; startLine.rotation.set(-Math.PI / 2, 0, Math.atan2(T[0].z, T[0].x) * -1 + Math.PI / 2);
+  startLine.rotation.order = 'YXZ'; startLine.rotation.set(-Math.PI / 2, 0, Math.PI / 2 - Math.atan2(T[0].z, T[0].x)); // across the track
   startLine.position.set(S[0].x, 0.06, S[0].z); scene.add(startLine);
 
   // --- party obstacles (original toy-table props)
   const obstacles = [];
+  const flames = [];
   const addObs = (g, x, z, r) => { g.position.set(x, 0, z); scene.add(g); obstacles.push({ x, z, r }); };
   // birthday cake
   (() => {
@@ -92,7 +91,7 @@ export function startRace({ mount, players, sound, onStatus, onFinish }) {
       const a = (i / 5) * Math.PI * 2;
       const c = mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.4, 10), cols[i], { outline: 0.15 }); c.position.set(Math.cos(a) * 1.8, 5.7, Math.sin(a) * 1.8); g.add(c);
       const f = mesh(new THREE.SphereGeometry(0.25, 10, 8), '#FFB703', { outline: 0, shadow: false }); f.scale.y = 1.6; f.position.set(Math.cos(a) * 1.8, 6.6, Math.sin(a) * 1.8); g.add(f);
-      f.userData.flame = true;
+      flames.push(f);
     }
     for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; const s = mesh(new THREE.SphereGeometry(0.35, 8, 6), cols[i % 5], { outline: 0 }); s.position.set(Math.cos(a) * 4.6, 2.9, Math.sin(a) * 4.6); g.add(s); }
     addObs(g, -8, 0, 5.4);
@@ -141,7 +140,7 @@ export function startRace({ mount, players, sound, onStatus, onFinish }) {
     g.scale.setScalar(1.35);
     g.position.copy(pos); g.rotation.y = heading;
     scene.add(g);
-    cars.set(p.id, { id: p.id, bot: p.bot, name: p.name, color: col, g, x: pos.x, z: pos.z, h: heading, v: 0, steer: 0, idx: si, lap: -1, prog: 0, done: false, finishT: 0, skill: 0.75 + Math.random() * 0.25, bumpT: 0 });
+    cars.set(p.id, { id: p.id, bot: p.bot, name: p.name, color: col, g, x: pos.x, z: pos.z, h: heading, v: 0, steer: 0, idx: si, lap: -1, prog: 0, done: false, lastInput: 0, finishT: 0, skill: 0.75 + Math.random() * 0.25, bumpT: 0 });
   });
 
   // --- HUD
@@ -180,10 +179,19 @@ export function startRace({ mount, players, sound, onStatus, onFinish }) {
     if (c.lap >= LAPS) { c.done = true; c.finishT = now; finished.push(c.id); sound.play('correct'); if (!firstFinish) firstFinish = now; return; }
     const trackH = Math.atan2(T[i].x, T[i].z);
     if (c.bot) {
-      const tgt = S[(i + 14) % N];
+      // aim a little down the track, sidestepping any obstacle sitting on the racing line
+      const ti = (i + 14) % N;
+      const tgt = S[ti].clone();
+      for (const o of obstacles) {
+        const side = (o.x - S[ti].x) * NR[ti].x + (o.z - S[ti].z) * NR[ti].z;   // obstacle's offset across the track
+        const ahead = (o.x - c.x) * Math.sin(c.h) + (o.z - c.z) * Math.cos(c.h); // and how far in front of the car
+        if (ahead > 0 && ahead < 14 && Math.abs(side) < o.r + 2.4 && Math.hypot(o.x - tgt.x, o.z - tgt.z) < 16) {
+          tgt.addScaledVector(NR[ti], (side > 0 ? -1 : 1) * (o.r + 2.4 - Math.abs(side)));
+        }
+      }
       const want = Math.atan2(tgt.x - c.x, tgt.z - c.z);
       c.steer = Math.max(-1, Math.min(1, -angDiff(want, c.h) * 2.2));
-    }
+    } else if (performance.now() - c.lastInput > INPUT_TIMEOUT) c.steer = 0;
     const vmax = (d > HW ? OFF_MAX : MAX) * (c.bot ? c.skill : 1);
     c.v = Math.min(vmax, c.v + ACC * dt);
     if (c.v > vmax) c.v = vmax;
@@ -193,7 +201,15 @@ export function startRace({ mount, players, sound, onStatus, onFinish }) {
     if (d > HW + 5) { c.x += (S[i].x - c.x) * 2 * dt; c.z += (S[i].z - c.z) * 2 * dt; }
     for (const o of obstacles) {
       const dx = c.x - o.x, dz = c.z - o.z, dd = Math.hypot(dx, dz), min = o.r + 1;
-      if (dd < min) { c.x = o.x + (dx / dd) * min; c.z = o.z + (dz / dd) * min; c.v *= 0.35; if (now - c.bumpT > 600) { c.bumpT = now; sound.play('boing'); } }
+      if (dd < min && dd > 0) {
+        const nx = dx / dd, nz = dz / dd;
+        c.x = o.x + nx * min; c.z = o.z + nz * min;
+        // slow down once per bump (not every frame of contact) and glance off sideways,
+        // so a car pressed against a cupcake slides round it instead of sticking
+        if (now - c.bumpT > 600) { c.bumpT = now; c.v *= 0.35; sound.play('boing'); }
+        const dir = Math.sin(c.h) * nz - Math.cos(c.h) * nx >= 0 ? 1 : -1;
+        c.h += angDiff(Math.atan2(nz * dir, -nx * dir), c.h) * 0.25;
+      }
     }
     c.x = Math.max(-49, Math.min(49, c.x)); c.z = Math.max(-31, Math.min(31, c.z));
     c.prog = c.lap * N + i;
@@ -220,7 +236,7 @@ export function startRace({ mount, players, sound, onStatus, onFinish }) {
       c.g.rotation.y = c.h;
       c.g.rotation.z = running && !c.done ? -c.steer * 0.08 : 0;
     }
-    scene.traverse((o) => { if (o.userData.flame) o.scale.x = 1 + Math.sin(now / 80 + o.position.x) * 0.15; });
+    for (const f of flames) f.scale.x = 1 + Math.sin(now / 80 + f.position.x) * 0.15;
     if (running && !ended) {
       uiT += dt;
       if (uiT > 0.25) { uiT = 0; updateUI(list); }
@@ -251,9 +267,9 @@ export function startRace({ mount, players, sound, onStatus, onFinish }) {
   }
 
   return {
-    input(id, steer) { const c = cars.get(id); if (c && !c.bot) c.steer = steer; },
+    input(id, steer) { const c = cars.get(id); if (c && !c.bot) { c.steer = steer; c.lastInput = performance.now(); } },
     forceFinish: () => end(),
-    destroy() { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); renderer.dispose(); mount.innerHTML = ''; },
+    destroy() { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); disposeScene(scene, renderer); mount.innerHTML = ''; },
   };
 }
 

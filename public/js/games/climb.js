@@ -1,6 +1,6 @@
 // Hero Tower Escape — a ladders-and-bricks climber rendered in cartoon 3D.
 import * as THREE from 'three';
-import { mesh, toon, ink, labelSprite, canvasTexture, makeRenderer, fit } from './toon.js';
+import { mesh, toon, ink, labelSprite, canvasTexture, makeRenderer, fit, frameCamera, disposeScene, INPUT_TIMEOUT } from './toon.js';
 
 const FLOORS = 6;            // ground (0) .. roof (5)
 const FH = 3.2;              // floor height
@@ -15,8 +15,7 @@ export function startClimb({ mount, players, heroImgs = [], sound, onStatus, onF
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#120E33');
   const camera = new THREE.PerspectiveCamera(36, 16 / 9, 0.1, 200);
-  camera.position.set(0, 9.2, 37.5);
-  camera.lookAt(0, 9.2, 0);
+  frameCamera(camera, [0, 9.2, 37.5], [0, 9.2, 0]);
   const resize = () => fit(renderer, camera, mount);
   resize(); window.addEventListener('resize', resize);
 
@@ -86,22 +85,27 @@ export function startClimb({ mount, players, heroImgs = [], sound, onStatus, onF
   });
 
   // --- players
+  // one texture per hero photo; every sprite using it is resized to the photo's shape on load
   const loader = new THREE.TextureLoader();
   const texCache = {};
-  const heroTex = (i) => {
+  const heroTex = (i, spr) => {
     const src = heroImgs[i] || heroImgs[0];
     if (!src) return null;
-    if (!texCache[src]) { texCache[src] = loader.load(src, (t) => { t.colorSpace = THREE.SRGBColorSpace; }); }
-    return texCache[src];
+    let entry = texCache[src];
+    if (!entry) {
+      entry = texCache[src] = { sprites: [], tex: null };
+      entry.tex = loader.load(src, (t) => entry.sprites.forEach((s) => adjust(s, t.image)));
+      entry.tex.colorSpace = THREE.SRGBColorSpace;
+    }
+    if (entry.tex.image) adjust(spr, entry.tex.image); else entry.sprites.push(spr);
+    return entry.tex;
   };
   const P = new Map();
   players.forEach((p, idx) => {
     const g = new THREE.Group();
-    const tex = heroTex(p.hero ?? 0);
-    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-    const spr = new THREE.Sprite(mat); spr.center.set(0.5, 0); spr.scale.set(1.1, 2.3, 1);
-    if (tex && tex.image) adjust(spr, tex.image);
-    else if (tex) tex.onUpdate = () => adjust(spr, tex.image);
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true }));
+    spr.center.set(0.5, 0); spr.scale.set(1.1, 2.3, 1);
+    spr.material.map = heroTex(p.hero ?? 0, spr);
     g.add(spr);
     const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.55, 16), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3 }));
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.02; g.add(shadow);
@@ -110,7 +114,7 @@ export function startClimb({ mount, players, heroImgs = [], sound, onStatus, onF
     const x = -13 + (idx % 12) * 1.9 + Math.floor(idx / 12) * 0.9;
     g.position.set(x, 0, 0.6 + (idx % 4) * 0.12);
     scene.add(g);
-    P.set(p.id, { id: p.id, bot: p.bot, name: p.name, g, spr, star, x, y: 0, f: 0, climbing: false, stun: 0, immune: 0, steer: 0, done: false, doneAt: 0, bob: Math.random() * 6 });
+    P.set(p.id, { id: p.id, bot: p.bot, name: p.name, g, spr, star, x, y: 0, f: 0, climbing: false, stun: 0, immune: 0, steer: 0, lastInput: 0, done: false, doneAt: 0, bob: Math.random() * 6 });
   });
   function adjust(spr, img) { if (img && img.width) spr.scale.set((2.3 * img.width) / img.height, 2.3, 1); }
 
@@ -168,7 +172,7 @@ export function startClimb({ mount, players, heroImgs = [], sound, onStatus, onF
     if (p.bot) {
       const target = p.f < FLOORS - 1 ? LADDERS[p.f] : EXIT_X;
       p.steer = Math.max(-1, Math.min(1, (target - p.x) / 2)) * 0.8 + Math.sin(t * 2 + p.bob) * 0.25;
-    }
+    } else if (performance.now() - p.lastInput > INPUT_TIMEOUT) p.steer = 0;
     p.immune = Math.max(0, p.immune - dt);
     if (p.stun > 0) { p.stun -= dt; if (p.stun <= 0) { p.stun = 0; p.immune = 1.4; } return; }
     if (p.climbing) {
@@ -204,14 +208,14 @@ export function startClimb({ mount, players, heroImgs = [], sound, onStatus, onF
     if (ended) return; ended = true; running = false;
     sound.play('cheer');
     const order = [...P.values()].sort((a, b) => progress(b) - progress(a)).map((p) => p.id);
-    elCd.textContent = 'TIME!';
+    elCd.textContent = finished.length === P.size ? 'ESCAPED!' : 'TIME!';
     setTimeout(() => onFinish({ order, finished: finished.slice() }), 1500);
   }
 
   return {
-    input(id, steer) { const p = P.get(id); if (p && !p.bot) p.steer = steer; },
+    input(id, steer) { const p = P.get(id); if (p && !p.bot) { p.steer = steer; p.lastInput = performance.now(); } },
     forceFinish: end,
-    destroy() { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); renderer.dispose(); mount.innerHTML = ''; },
+    destroy() { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); disposeScene(scene, renderer); mount.innerHTML = ''; },
   };
 }
 

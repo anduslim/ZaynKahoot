@@ -79,11 +79,37 @@ export function makeRenderer(mount) {
   return renderer;
 }
 
+// Scenes are composed for a 16:9 screen. On a narrower screen (4:3 or 16:10 projector)
+// the camera backs away along its view line so the same width of the world stays in shot.
+export function frameCamera(camera, pos, target, designAspect = 16 / 9) {
+  camera.userData.frame = { pos: new THREE.Vector3(...pos), target: new THREE.Vector3(...target), designAspect };
+}
+
 export function fit(renderer, camera, mount) {
   const w = mount.clientWidth || window.innerWidth, h = mount.clientHeight || window.innerHeight;
   renderer.setSize(w, h, false);
   renderer.domElement.style.width = w + 'px'; renderer.domElement.style.height = h + 'px';
-  camera.aspect = w / h; camera.updateProjectionMatrix();
+  camera.aspect = w / h;
+  const f = camera.userData.frame;
+  if (f) {
+    const k = Math.max(1, f.designAspect / camera.aspect);
+    camera.position.copy(f.target).addScaledVector(f.pos.clone().sub(f.target), k);
+    camera.lookAt(f.target);
+  }
+  camera.updateProjectionMatrix();
 }
+
+// Free GPU memory and the WebGL context when a mini game ends.
+export function disposeScene(scene, renderer) {
+  scene.traverse((o) => {
+    o.geometry?.dispose();
+    for (const m of [].concat(o.material || [])) { m.map?.dispose(); m.dispose(); }
+  });
+  renderer.dispose();
+  renderer.forceContextLoss();
+}
+
+// A phone that stops sending (screen locked, Wi-Fi blip) shouldn't keep steering.
+export const INPUT_TIMEOUT = 600;
 
 export const COLORS_HEX = (c) => new THREE.Color(c || '#E5383B');
