@@ -417,29 +417,46 @@ function mgResults(st) {
   confetti();
 }
 
+// Scoreboard: rows appear in last round's order, then slide to their new places while the
+// scores count up; climbers glow, answer streaks get a flame, and the longest streak is announced.
 function scoreboard(st) {
   Sound.music('lobby');
+  const t = token;
   const qq = st.question;
+  const ROW = 8.4;                                           // vh per row (row + gap)
+  const top = st.players.slice(0, 8);
+  const champ = st.players.filter((p) => p.streak >= 2).sort((a, b) => b.streak - a.streak)[0];
   view(`<div class="screen">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:0 6vw">
-      <h2 class="h-title" style="font-size:6.4vh">Leaderboard</h2>
+    <div class="sb-head">
+      <h2 class="sb-title">Scoreboard</h2>
       ${qq?.fact ? `<span class="fact pop">${esc(qq.fact)}</span>` : ''}
     </div>
-    <div class="board">${st.players.slice(0, 8).map((p, i) => {
+    <div class="sb-list" id="sbl" style="height:${top.length * ROW}vh">${top.map((p, i) => {
+      const from = p.prevRank ? Math.min(p.prevRank - 1, 8.6) : i;     // where the row was last round
       const mv = p.prevRank ? p.prevRank - (i + 1) : 0;
-      return `<div class="brow ${i === 0 ? 'first' : ''}" style="animation-delay:${(7 - Math.min(i, 7)) * 0.1}s">
-        <span class="rk">${i + 1}</span>${avatarHTML(p.avatar, 50)}<span class="nm">${esc(p.name)}</span>
+      return `<div class="sb-row ${i === 0 ? 'first' : ''} ${mv > 0 ? 'up' : ''}" style="top:${i * ROW}vh;--from:${((from - i) * ROW).toFixed(2)}vh;animation-delay:${(i * 0.07).toFixed(2)}s">
+        <span class="rk">${i + 1}</span>${avatarHTML(p.avatar, 52)}
+        <span class="nm">${esc(p.name)}</span>
+        ${p.streak >= 2 ? `<span class="streak" title="Answer streak">🔥 ${p.streak}</span>` : ''}
         <span class="mv ${mv > 0 ? 'up' : mv < 0 ? 'down' : ''}">${mv > 0 ? '▲ ' + mv : mv < 0 ? '▼ ' + -mv : ''}</span>
         <span class="gn">${p.lastGain ? '+' + p.lastGain : ''}</span>
-        <span class="sc" data-score="${p.score}">${p.score - (p.lastGain || 0)}</span></div>`; }).join('')}</div>
-    ${st.players.length > 8 ? `<div style="text-align:center;color:var(--muted);font-weight:800">+ ${st.players.length - 8} more players</div>` : ''}
+        <span class="sc" data-score="${p.score}">${p.score - (p.lastGain || 0)}</span></div>`;
+    }).join('')}</div>
+    ${st.players.length > 8 ? `<div class="sb-more">+ ${st.players.length - 8} more players</div>` : ''}
+    ${champ ? `<div class="sb-streak">${avatarHTML(champ.avatar, 50)}<span><b>${esc(champ.name)}</b> has the highest answer streak of <b>${champ.streak}</b>!</span><span class="flame">🔥</span></div>` : ''}
   </div>`);
-  // count-up animation
-  stage.querySelectorAll('.sc[data-score]').forEach((el) => {
-    const to = +el.dataset.score, from = +el.textContent; const t0 = performance.now();
-    const step = (t) => { const k = Math.min(1, (t - t0 - 600) / 900); if (k > 0) el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); };
-    requestAnimationFrame(step);
-  });
+  // 1) rows fly in at their old places  2) slide to new ranks + scores count up  3) streak banner
+  setTimeout(() => {
+    if (t !== token) return;
+    document.getElementById('sbl')?.classList.add('settle');
+    if (top.some((p) => p.prevRank && p.prevRank !== top.indexOf(p) + 1)) Sound.play('whoosh');
+    stage.querySelectorAll('.sc[data-score]').forEach((el) => {
+      const to = +el.dataset.score, from = +el.textContent, t0 = performance.now();
+      const step = (now) => { const k = Math.min(1, (now - t0) / 900); el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    });
+  }, 1300);
+  if (champ) setTimeout(() => t === token && Sound.play('sparkle'), 2500);
 }
 
 async function finale(st) {

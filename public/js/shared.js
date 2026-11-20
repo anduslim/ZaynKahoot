@@ -9,13 +9,7 @@ const OPT_SHAPES = [
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-function avatarHTML(av, size = 64) {
-  av = av || {};
-  return `<div class="avatar" style="width:${size}px;height:${size}px;background:${esc(av.color || '#E5383B')};border-width:${Math.max(2, size / 16)}px">
-    <span class="face" style="font-size:${size * 0.56}px">${esc(av.face || '😀')}</span>
-    ${av.hat ? `<span class="hat" style="font-size:${size * 0.5}px">${esc(av.hat)}</span>` : ''}
-  </div>`;
-}
+// avatarHTML() lives in avatars.js
 
 function confetti(colors = ['#E5383B', '#2BA84A', '#FFC93C', '#3A86FF', '#EC4899'], n = 120) {
   const box = document.createElement('div');

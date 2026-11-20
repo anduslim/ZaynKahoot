@@ -49,8 +49,20 @@ const steps = [
 ];
 
 const BOT_NAMES = ['Robo Rex', 'Captain Byte', 'Zippy', 'Noodle', 'Turbo Tim', 'Sparkle', 'Bolt', 'Pixel Pat', 'Mango', 'Wobble'];
-const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
-const FACES = ['😀', '😎', '🤠', '🥳', '🤖', '👽', '🐯', '🐼', '🦊', '🐸', '🦄', '🐵'];
+// avatar choices (drawn by public/js/avatars.js; keep these lists in step with it)
+const COLORS = ['#E5383B', '#F97316', '#D49B00', '#2BA84A', '#06B6D4', '#3A86FF', '#8B5CF6', '#EC4899'];
+const ANIMALS = ['bear', 'fox', 'cat', 'panda', 'penguin', 'frog', 'owl', 'bunny', 'dog', 'monkey', 'dino', 'unicorn'];
+const ACCS = ['none', 'party', 'crown', 'headphones', 'sunglasses', 'glasses', 'bow', 'cap', 'wizard', 'flowers', 'cake', 'pirate'];
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const randomAvatar = () => ({ animal: pick(ANIMALS), acc: pick(ACCS), color: pick(COLORS) });
+function cleanAvatar(a) {
+  a = a && typeof a === 'object' ? a : {};
+  return {
+    animal: ANIMALS.includes(a.animal) ? a.animal : 'bear',
+    acc: ACCS.includes(a.acc) ? a.acc : 'none',
+    color: /^#[0-9a-fA-F]{6}$/.test(String(a.color)) ? a.color : COLORS[0],
+  };
+}
 
 let game;
 function newGame() {
@@ -108,7 +120,7 @@ function hostView() {
     mg: game.mg && { type: game.mg.type, status: game.mg.status, results: game.mg.results, endsAt: game.mg.endsAt, bonus: game.mg.bonus },
     players: ranked().map((p) => ({
       id: p.id, name: p.name, avatar: p.avatar, score: p.score, lastGain: p.lastGain,
-      answer: p.answer, connected: p.connected, bot: p.bot, prevRank: game.lastRanks[p.id] ?? null, hero: p.hero ?? 0,
+      answer: p.answer, connected: p.connected, bot: p.bot, prevRank: game.lastRanks[p.id] ?? null, hero: p.hero ?? 0, streak: p.streak || 0,
     })),
     isLast: game.step === steps.length - 1,
     heroImgs: (content.questions.find((x) => x.type === 'hero')?.options || []).map((o) => o.img),
@@ -123,7 +135,7 @@ function playerView(p) {
   return {
     phase: game.phase,
     stepKind: currentStep()?.kind || null,
-    me: { id: p.id, name: p.name, avatar: p.avatar, score: p.score, lastGain: p.lastGain, rank: r.indexOf(p) + 1, of: r.length },
+    me: { id: p.id, name: p.name, avatar: p.avatar, score: p.score, lastGain: p.lastGain, rank: r.indexOf(p) + 1, of: r.length, streak: p.streak || 0 },
     question: publicQuestion(q),
     answer: p.answer,
     correct: q && showAnswer ? q.correct : null,
@@ -160,6 +172,7 @@ function scoreQuestion() {
   game.lastRanks = Object.fromEntries(ranked().map((p, i) => [p.id, i + 1]));
   for (const p of activePlayers()) {
     p.lastGain = 0;
+    p.streak = p.answer === q.correct ? (p.streak || 0) + 1 : 0;   // answers right in a row
     if (p.answer === q.correct) {
       if (q.minigame) p.lastGain = 1000;
       else {
@@ -280,7 +293,7 @@ function addBots(n) {
     const name = BOT_NAMES[game.players.size % BOT_NAMES.length] + (game.players.size >= BOT_NAMES.length ? ' ' + game.players.size : '');
     game.players.set(id, {
       id, name, bot: true, connected: true, score: 0, lastGain: 0, answer: null,
-      avatar: { color: COLORS[Math.floor(Math.random() * COLORS.length)], face: FACES[Math.floor(Math.random() * FACES.length)], hat: '' },
+      avatar: randomAvatar(), streak: 0,
     });
   }
   broadcast();
@@ -349,7 +362,7 @@ io.on('connection', (socket) => {
     if (!socket.data.host) return;
     const old = game.players;
     newGame();
-    if (keepPlayers) for (const [id, p] of old) { p.score = 0; p.lastGain = 0; p.answer = null; game.players.set(id, p); }
+    if (keepPlayers) for (const [id, p] of old) { p.score = 0; p.lastGain = 0; p.answer = null; p.streak = 0; game.players.set(id, p); }
     else for (const p of old.values()) if (p.socketId) io.to(p.socketId).emit('kicked');
     broadcast();
   });
@@ -374,13 +387,13 @@ io.on('connection', (socket) => {
       if (pin && String(pin) !== game.pin) return ack?.({ ok: false, error: 'Wrong game PIN' });
       if (activePlayers().length >= 24) return ack?.({ ok: false, error: 'Game is full' });
       const id = playerId || 'p-' + Math.random().toString(36).slice(2, 10);
-      p = { id, score: 0, lastGain: 0, answer: null, bot: false };
+      p = { id, score: 0, lastGain: 0, answer: null, bot: false, streak: 0 };
       game.players.set(id, p);
     }
     if (name) p.name = String(name).slice(0, 14);
-    if (avatar) p.avatar = avatar;
+    if (avatar) p.avatar = cleanAvatar(avatar);
     p.name = p.name || 'Player';
-    p.avatar = p.avatar || { color: COLORS[0], face: FACES[0], hat: '' };
+    p.avatar = p.avatar || randomAvatar();
     p.socketId = socket.id;
     p.connected = true;
     socket.data.playerId = p.id;
@@ -392,7 +405,7 @@ io.on('connection', (socket) => {
     const p = game.players.get(socket.data.playerId);
     if (!p) return;
     if (name) p.name = String(name).slice(0, 14);
-    if (avatar) p.avatar = avatar;
+    if (avatar) p.avatar = cleanAvatar(avatar);
     p.ready = true;
     broadcast();
   });

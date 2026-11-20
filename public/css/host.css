@@ -173,3 +173,39 @@ body { overflow: hidden; }
 #controls button.primary { background: var(--yellow); color: var(--ink); font-weight: 700; font-size: 2.2vh; }
 #controls .ph { color: var(--muted); font-size: 1.6vh; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; margin-right: .4vw; }
 #paused { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 12vh; z-index: 90; }
+
+/* scoreboard */
+.sb-head { display: flex; align-items: center; justify-content: center; gap: 2vw; padding: 0 8vw; position: relative; }
+.sb-title { margin: 0; font-family: var(--display); font-size: 5.6vh; background: #fff; color: var(--ink); padding: .6vh 4vh; border-radius: 1.4vh; box-shadow: 0 .6vh 0 rgba(0,0,0,.25); animation: popIn .45s cubic-bezier(.2,1.4,.4,1) both; }
+.sb-head .fact { position: absolute; right: 6vw; }
+.sb-list { position: relative; margin: 1vh 9vw 0; }
+.sb-row { position: absolute; left: 0; right: 0; height: 7.2vh; display: flex; align-items: center; gap: 1.4vw; padding: 0 1.8vw 0 1.2vw; border-radius: 1.6vh;
+  background: var(--panel); box-shadow: 0 .5vh 0 rgba(0,0,0,.28); transform: translateY(var(--from)); transition: transform .95s cubic-bezier(.55,0,.2,1);
+  animation: sbIn .5s cubic-bezier(.2,1.25,.4,1) both; }
+.sb-list.settle .sb-row { transform: translateY(0); }
+.sb-list.settle .sb-row.up { animation: sbIn .5s cubic-bezier(.2,1.25,.4,1) both, sbGlow 1.3s .25s; z-index: 2; }
+.sb-row .rk { width: 4.5vh; font-family: var(--display); font-size: 3.6vh; font-weight: 700; color: var(--muted); text-align: center; }
+.sb-row .nm { flex: 1; min-width: 0; font-family: var(--display); font-size: 3.4vh; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-row .streak { background: linear-gradient(#FFB02E, #FF6A00); color: #fff; font-weight: 800; font-size: 2.2vh; padding: .4vh 1.2vh; border-radius: 999px; box-shadow: 0 .3vh 0 rgba(0,0,0,.25); animation: flamePulse 1.1s ease-in-out infinite; }
+.sb-row .mv { width: 6vh; font-weight: 800; font-size: 2.2vh; opacity: 0; transition: opacity .3s .9s; }
+.sb-list.settle .sb-row .mv { opacity: 1; }
+.sb-row .mv.up { color: #8EF0A8; } .sb-row .mv.down { color: #FF9AA2; }
+.sb-row .gn { width: 9vh; text-align: right; font-weight: 800; font-size: 2.6vh; color: #8EF0A8; }
+.sb-row .sc { width: 13vh; text-align: right; font-family: var(--display); font-size: 3.8vh; font-weight: 700; }
+.sb-row.first { background: linear-gradient(90deg, #FFD54A, #FFB300); color: var(--ink); }
+.sb-row.first .rk { color: var(--ink); }
+.sb-row.first .gn { color: #1E7D3A; }
+.sb-more { text-align: center; color: var(--muted); font-weight: 800; margin-top: 1vh; }
+.sb-streak { position: absolute; left: 50%; bottom: 10vh; transform: translateX(-50%); display: flex; align-items: center; gap: 1.4vw; white-space: nowrap;
+  background: var(--panel2); padding: 1vh 3vh 1vh 1.2vh; border-radius: 999px; font-family: var(--display); font-size: 3vh; box-shadow: 0 .6vh 0 rgba(0,0,0,.3);
+  animation: sbBanner .6s 2.4s cubic-bezier(.2,1.3,.4,1) both; }
+.sb-streak b { color: var(--yellow); }
+.sb-streak .flame { font-size: 4.4vh; animation: flamePulse .8s ease-in-out infinite; }
+@keyframes sbIn { from { translate: -30vw 0; opacity: 0; } to { translate: 0 0; opacity: 1; } }
+@keyframes sbGlow { 0% { box-shadow: 0 .5vh 0 rgba(0,0,0,.28), 0 0 0 0 rgba(142,240,168,.9); } 40% { box-shadow: 0 .5vh 0 rgba(0,0,0,.28), 0 0 0 1vh rgba(142,240,168,.35); } 100% { box-shadow: 0 .5vh 0 rgba(0,0,0,.28), 0 0 0 0 rgba(142,240,168,0); } }
+@keyframes sbBanner { from { transform: translate(-50%, 16vh); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes flamePulse { 0%,100% { transform: scale(1) rotate(-4deg); } 50% { transform: scale(1.12) rotate(4deg); } }
+/* lobby: everyone who has joined bobs about, out of step */
+.pchip .avatar { animation: floaty 2.4s ease-in-out infinite; }
+.pchip:nth-child(3n+1) .avatar { animation-delay: -.8s; }
+.pchip:nth-child(3n+2) .avatar { animation-delay: -1.6s; }

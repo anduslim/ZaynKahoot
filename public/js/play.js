@@ -4,38 +4,70 @@ const app = document.getElementById('app');
 const params = new URLSearchParams(location.search);
 const LS = { get: (k) => { try { return JSON.parse(localStorage.getItem('zk_' + k)); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem('zk_' + k, JSON.stringify(v)); } catch (e) {} } };
 
-const COLORS = ['#E5383B', '#F97316', '#D49B00', '#2BA84A', '#06B6D4', '#3A86FF', '#8B5CF6', '#EC4899'];
-const FACES = ['😀', '😎', '🤠', '🥳', '🤖', '👽', '🐯', '🐼', '🦊', '🐸', '🦄', '🐵'];
-const HATS = ['', '👑', '🧢', '🎩', '🎓', '🎀', '🪖', '🎉'];
-
 let playerId = LS.get('id');
-let profile = LS.get('profile') || { name: '', avatar: { color: COLORS[Math.floor(Math.random() * 8)], face: FACES[0], hat: '' } };
+let profile = LS.get('profile') || { name: '', avatar: null };
+if (!profile.avatar || !profile.avatar.animal) profile.avatar = AVATAR.random();   // new player, or one saved before the animal avatars
+let pickTab = 'animal';
 let joined = false;
 let S = null, key = '';
 let steer = 0, btnSteer = 0, motionOK = false, sendTimer = null;
 let mgStatus = null;
 let catchGame = null;
 
-// ------------------------------------------------------------- join
+// ------------------------------------------------------------- join + avatar builder
 function joinScreen(err) {
   const pinNeeded = !params.get('pin');
   app.innerHTML = `
     <h1 class="brand"><span class="z">Zayn's</span> <span class="k">Kahoot</span></h1>
-    <div style="display:flex;justify-content:center;padding-top:22px" id="av">${avatarHTML(profile.avatar, 130)}</div>
+    <div class="av-stage"><div class="av-preview" id="av">${avatarHTML(profile.avatar, 150)}</div>
+      <button class="dice" id="dice" aria-label="Surprise me">🎲</button></div>
+    <div class="av-name" id="avname"></div>
     ${pinNeeded ? `<label class="lbl">Game PIN<input class="txt" id="pin" inputmode="numeric" maxlength="4" placeholder="1234"></label>` : ''}
     <label class="lbl">Your name<input class="txt" id="nm" maxlength="14" placeholder="Type your name" value="${esc(profile.name)}"></label>
-    <div class="lbl">Colour</div>
-    <div class="row" style="grid-template-columns:repeat(8,1fr)">${COLORS.map((c) => `<button class="sw ${c === profile.avatar.color ? 'on' : ''}" style="background:${c}" data-c="${c}" aria-label="colour"></button>`).join('')}</div>
-    <div class="lbl">Face</div>
-    <div class="row" style="grid-template-columns:repeat(6,1fr)">${FACES.map((f) => `<button class="chip ${f === profile.avatar.face ? 'on' : ''}" data-f="${f}">${f}</button>`).join('')}</div>
-    <div class="lbl">Hat</div>
-    <div class="row" style="grid-template-columns:repeat(8,1fr)">${HATS.map((h) => `<button class="chip ${h === profile.avatar.hat ? 'on' : ''}" data-h="${h}">${h || '✖️'}</button>`).join('')}</div>
+    <div class="tabs" id="tabs">
+      <button data-tab="animal">Animal</button><button data-tab="acc">Accessory</button><button data-tab="color">Colour</button>
+    </div>
+    <div class="picker" id="picker"></div>
+    <div class="combo">${AVATAR.animals.length * AVATAR.accs.length * AVATAR.colors.length}+ combinations!</div>
     ${err ? `<div class="err">${esc(err)}</div>` : ''}
     <button class="cta" id="ready">I'm ready!</button>`;
-  const refresh = () => { document.getElementById('av').innerHTML = avatarHTML(profile.avatar, 130); };
-  app.querySelectorAll('[data-c]').forEach((b) => b.onclick = () => { profile.avatar.color = b.dataset.c; app.querySelectorAll('[data-c]').forEach((x) => x.classList.toggle('on', x === b)); refresh(); });
-  app.querySelectorAll('[data-f]').forEach((b) => b.onclick = () => { profile.avatar.face = b.dataset.f; app.querySelectorAll('[data-f]').forEach((x) => x.classList.toggle('on', x === b)); refresh(); });
-  app.querySelectorAll('[data-h]').forEach((b) => b.onclick = () => { profile.avatar.hat = b.dataset.h; app.querySelectorAll('[data-h]').forEach((x) => x.classList.toggle('on', x === b)); refresh(); });
+
+  const nameEl = document.getElementById('avname');
+  const showName = () => {
+    const a = profile.avatar;
+    nameEl.textContent = AVATAR.label('animal', a.animal) + (a.acc !== 'none' ? ' · ' + AVATAR.label('acc', a.acc) : '');
+  };
+  const refresh = () => {
+    const box = document.getElementById('av');
+    box.innerHTML = avatarHTML(profile.avatar, 150);
+    box.classList.remove('boing'); void box.offsetWidth; box.classList.add('boing');
+    showName(); drawPicker();
+    Sound.init(); Sound.play('pop');
+  };
+  const drawPicker = () => {
+    document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === pickTab));
+    const a = profile.avatar, el = document.getElementById('picker');
+    if (pickTab === 'color') {
+      el.className = 'picker colors';
+      el.innerHTML = AVATAR.colors.map((c) => `<button class="sw ${c === a.color ? 'on' : ''}" style="background:${c}" data-v="${c}" aria-label="colour"></button>`).join('');
+    } else {
+      const list = pickTab === 'animal' ? AVATAR.animals : AVATAR.accs;
+      el.className = 'picker tiles';
+      el.innerHTML = list.map((k) => {
+        const av = { ...a, [pickTab]: k };
+        return `<button class="tile ${a[pickTab] === k ? 'on' : ''}" data-v="${k}">${avatarHTML(av, 58)}<span>${esc(AVATAR.label(pickTab, k))}</span></button>`;
+      }).join('');
+    }
+    el.querySelectorAll('[data-v]').forEach((b) => b.onclick = () => { profile.avatar = { ...profile.avatar, [pickTab]: b.dataset.v }; refresh(); });
+  };
+  document.querySelectorAll('#tabs button').forEach((b) => b.onclick = () => { pickTab = b.dataset.tab; drawPicker(); });
+  document.getElementById('dice').onclick = (e) => {
+    profile.avatar = AVATAR.random();
+    e.currentTarget.classList.remove('roll'); void e.currentTarget.offsetWidth; e.currentTarget.classList.add('roll');
+    refresh();
+  };
+  showName(); drawPicker();
+
   document.getElementById('ready').onclick = async () => {
     const name = document.getElementById('nm').value.trim();
     if (!name) return joinScreen('Please type your name');
@@ -131,11 +163,13 @@ function render(st, changed) {
     const ok = st.wasCorrect;
     Sound.play(ok ? 'correct' : 'wrong');
     navigator.vibrate?.(ok ? [60, 40, 60] : 200);
+    const streak = st.me.streak || 0;
     app.innerHTML = `${meBar(st)}<div class="center"><div class="result ${ok ? 'ok' : 'no'} pop">
-      <div class="ic">${ok ? '🎉' : st.answer == null ? '⏰' : '😅'}</div>
-      <div class="big">${ok ? 'Correct!' : st.answer == null ? "Time's up!" : 'Not this time'}</div>
-      <div class="sub" style="color:#fff">${ok ? '+' + st.me.lastGain + ' points' : 'Answer: ' + esc(st.question.options[st.correct]?.label || '')}</div></div>
-      <div class="sub">You're ${ordinal(st.me.rank)} of ${st.me.of}</div></div>`;
+      <div class="tick">${ok ? '✓' : st.answer == null ? '⏰' : '✕'}</div>
+      <div class="big">${ok ? 'Correct' : st.answer == null ? "Time's up!" : 'Not this time'}</div>
+      ${ok && streak >= 2 ? `<div class="streak-pill">Answer streak 🔥 ${streak}</div>` : ''}
+      <div class="gain">${ok ? '+ ' + st.me.lastGain : 'Answer: ' + esc(st.question.options[st.correct]?.label || '')}</div></div>
+      <div class="rank-line">${st.me.rank <= 3 ? "You're on the podium! 🏆" : `You're ${ordinal(st.me.rank)} of ${st.me.of}`}</div></div>`;
     return;
   }
   if (P === 'mg_intro') { if (changed) mgIntro(st); return; }
@@ -152,7 +186,8 @@ function render(st, changed) {
   }
   if (P === 'scoreboard') {
     if (!changed) return;
-    app.innerHTML = `${meBar(st)}<div class="center"><div class="sub">You are</div><div class="place pop">${ordinal(st.me.rank)}</div><div class="big">${st.me.score} points</div><div class="sub">Next question coming up!</div></div>`;
+    app.innerHTML = `${meBar(st)}<div class="center"><div class="bounce-in">${avatarHTML(st.me.avatar, 120)}</div><div class="sub">You are</div><div class="place pop">${ordinal(st.me.rank)}</div><div class="big">${st.me.score} points</div>
+      ${st.me.streak >= 2 ? `<div class="streak-pill">🔥 ${st.me.streak} in a row!</div>` : ''}<div class="sub">Next question coming up!</div></div>`;
     return;
   }
   if (P === 'final') {
