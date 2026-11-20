@@ -1,0 +1,48 @@
+@import url('/vendor/fredoka/500.css');
+@import url('/vendor/fredoka/600.css');
+@import url('/vendor/fredoka/700.css');
+@import url('/vendor/nunito/600.css');
+@import url('/vendor/nunito/800.css');
+
+:root {
+  --ink: #1B1446;
+  --panel: #2A2165;
+  --panel2: #3B2F86;
+  --muted: #B9B3E8;
+  --soft: #D6D2F5;
+  --red: #E5383B;
+  --green: #2BA84A;
+  --blue: #3A86FF;
+  --yellow: #FFC93C;
+  --o0: #E5383B;
+  --o1: #3A86FF;
+  --o2: #C98F00;
+  --o3: #1E8E3E;
+  --display: 'Fredoka', 'Arial Rounded MT Bold', system-ui, sans-serif;
+  --body: 'Nunito', system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--ink); color: #fff; font-family: var(--body); -webkit-tap-highlight-color: transparent; }
+button { font-family: var(--display); cursor: pointer; }
+.display { font-family: var(--display); }
+.brand .z { color: var(--red); }
+.brand .k { color: var(--green); }
+.hidden { display: none !important; }
+
+.avatar { position: relative; border-radius: 50%; border: 4px solid #fff; display: flex; align-items: center; justify-content: center; flex: none; }
+.avatar .face { line-height: 1; }
+.avatar .hat { position: absolute; top: -38%; left: 50%; transform: translateX(-50%); line-height: 1; }
+
+@keyframes popIn { 0% { transform: scale(0.3); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes bounceIn { 0% { transform: translateY(40px); opacity: 0; } 60% { transform: translateY(-8px); opacity: 1; } 100% { transform: translateY(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes wobble { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-14deg); } 75% { transform: rotate(14deg); } }
+@keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.pop { animation: popIn 0.45s cubic-bezier(.2,1.4,.4,1) both; }
+.bounce { animation: bounceIn 0.5s ease-out both; }
+
+/* confetti */
+.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+.confetti i { position: absolute; top: -20px; width: 12px; height: 18px; border-radius: 3px; animation: fall linear forwards; }
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }

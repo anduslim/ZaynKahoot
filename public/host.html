@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zayn's Kahoot — Host</title>
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/host.css">
+<script type="importmap">{ "imports": { "three": "/vendor/three/build/three.module.js" } }</script>
+</head>
+<body>
+<div id="stage"></div>
+<div id="controls">
+  <span class="ph" id="ctl-phase">lobby</span>
+  <button class="primary" id="ctl-next" title="Space">Next ▸</button>
+  <button id="ctl-pause" title="P">Pause</button>
+  <button id="ctl-bots" title="B">+5 bots</button>
+  <button id="ctl-mute" title="M">Mute</button>
+  <button id="ctl-fs" title="F">Fullscreen</button>
+  <button id="ctl-reset">Reset</button>
+</div>
+<script src="/vendor/socket.io-client/socket.io.min.js"></script>
+<script src="/js/audio.js"></script>
+<script src="/js/shared.js"></script>
+<script type="module" src="/js/host.js"></script>
+</body>
+</html>

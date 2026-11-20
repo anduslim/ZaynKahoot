@@ -1,0 +1,8 @@
+Drop one PNG per Pokémon in this folder, named exactly (lowercase):
+pikachu.png charmander.png charizard.png bulbasaur.png squirtle.png
+mewtwo.png mew.png dragonite.png slowpoke.png snorlax.png
+eevee.png jigglypuff.png psyduck.png gengar.png gyarados.png
+meowth.png magikarp.png lapras.png vulpix.png onix.png
+Transparent backgrounds look best. pikachu.png is also used as the mystery
+silhouette in the catch game (the game blacks it out automatically).
+Missing images show a "?" tile, so the game still works.

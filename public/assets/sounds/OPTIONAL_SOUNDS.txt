@@ -1,0 +1,4 @@
+Optional: drop mp3 files here to replace the built-in synth sounds.
+Music loops: lobby.mp3 question.mp3 race.mp3 final.mp3
+Animal sounds: lion.mp3 elephant.mp3 toucan.mp3 monkey.mp3
+Effects: correct.mp3 wrong.mp3 cheer.mp3
