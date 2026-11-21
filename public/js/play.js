@@ -288,7 +288,7 @@ const BALL_LIGHT = `<svg viewBox="0 0 100 100" width="100%" height="100%"><defs>
 </svg>`;
 
 function startCatch(st) {
-  const img = st.question?.mysteryImg || '/assets/pokemon/pikachu.png';
+  const img = st.question?.mysteryImg || st.mysteryImg || '/assets/pokemon/pikachu.png';
   let balls = 3, busy = false, done = false;
   app.innerHTML = '';
   const root = document.createElement('div');

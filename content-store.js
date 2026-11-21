@@ -11,6 +11,7 @@ const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
 const TYPES = ['hero', 'photo', 'pokemon', 'animal', 'height', 'countries', 'food', 'career', 'colour'];
 const MINIGAMES = ['', 'climb', 'catch', 'race'];
 const FINALES = ['race', 'climb', 'none'];
+const GAMES = ['climb', 'catch', 'race'];
 const SOUNDS = ['', 'lion', 'elephant', 'monkey', 'toucan', 'dino', 'boing', 'whoosh', 'sparkle', 'cheer'];
 const ANIMS = ['roar', 'stomp', 'fly', 'swing'];
 const GAME_DEFAULTS = { raceLaps: 3, climbSeconds: 90, catchSeconds: 60 };
@@ -76,7 +77,7 @@ function sanitize(c) {
   c = c && typeof c === 'object' ? c : {};
   const questions = (Array.isArray(c.questions) ? c.questions : []).slice(0, 40).map(cleanQuestion);
   const live = questions.filter((q) => q.enabled);
-  if (!live.length) throw new Error('At least one question has to be switched on');
+  if (!live.length && c.mode !== 'games') throw new Error('At least one question has to be switched on');
   const ids = new Set();
   for (const q of questions) { while (ids.has(q.id)) q.id += '-2'; ids.add(q.id); }
   if (live.some((q) => q.minigame === 'climb') && !questions.some((q) => q.type === 'hero')) {
@@ -87,9 +88,23 @@ function sanitize(c) {
   }
   const finale = FINALES.includes(c.finale) ? c.finale : 'race';
   if (finale === 'climb' && !questions.some((q) => q.type === 'hero')) throw new Error('The tower finale needs the superhero question’s photos');
+  // "Mini games only" mode: skip the questions and play these games in this order
+  const mode = c.mode === 'games' ? 'games' : 'quiz';
+  const seen = new Set();
+  const gamesOnly = (Array.isArray(c.gamesOnly) ? c.gamesOnly : [])
+    .filter((g) => GAMES.includes(g?.type) && !seen.has(g.type) && seen.add(g.type))
+    .map((g) => ({ type: g.type, on: g.on !== false }));
+  for (const t of GAMES) if (!seen.has(t)) gamesOnly.push({ type: t, on: true });
+  if (mode === 'games') {
+    const on = gamesOnly.filter((g) => g.on);
+    if (!on.length) throw new Error('Mini games only: switch on at least one game');
+    if (on.some((g) => g.type === 'climb') && !questions.some((q) => q.type === 'hero')) throw new Error('Hero Tower Escape needs the superhero question’s photos (it can be switched off)');
+  }
   const bonus = (Array.isArray(c.minigameBonus) ? c.minigameBonus : []).slice(0, 24).map((b) => int(b, 0, 5000, 0));
   return {
     title: str(c.title, 60) || "Zayn's Kahoot",
+    mode,
+    gamesOnly,
     heightPhoto: img(c.heightPhoto) || '/assets/zayn/batman_fist.png',
     questions,
     finale,

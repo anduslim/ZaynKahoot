@@ -164,3 +164,17 @@ small { color: var(--muted); font-weight: 600; }
   .opt { flex-wrap: wrap; }
   .opt .label { flex-basis: calc(100% - 90px); }
 }
+
+/* game mode */
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mode { display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 14px; background: rgba(255,255,255,.05); border: 3px solid transparent; cursor: pointer; }
+.mode input { display: none; }
+.mode b { font-family: var(--display); font-size: 18px; }
+.mode.on { border-color: var(--yellow); background: rgba(255,201,60,.1); }
+.glist { display: flex; flex-direction: column; gap: 6px; }
+.grow { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,.05); }
+.grow.off { opacity: .5; }
+.grow .gname { flex: 1; font-family: var(--display); font-weight: 600; font-size: 17px; }
+.notice { padding: 12px 14px; border-radius: 14px; background: rgba(255,201,60,.14); color: #FFE08A; font-weight: 700; }
+.order li.note { background: rgba(255,201,60,.18); color: #FFE08A; white-space: normal; }
+@media (max-width: 560px) { .modes { grid-template-columns: 1fr; } }

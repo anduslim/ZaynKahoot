@@ -122,11 +122,13 @@ let steps = [];
 function applyContent(c) {
   edited = c; pending = null;
   content = store.live(c);
-  steps = [
-    ...content.questions.map((q, i) => ({ kind: 'question', qi: i })),
-    ...(content.finale !== 'none' ? [{ kind: 'finale' }] : []),
-    { kind: 'final' },
-  ];
+  steps = content.mode === 'games'
+    ? [...content.gamesOnly.filter((g) => g.on).map((g) => ({ kind: 'game', type: g.type })), { kind: 'final' }]   // mini games only
+    : [
+      ...content.questions.map((q, i) => ({ kind: 'question', qi: i })),
+      ...(content.finale !== 'none' ? [{ kind: 'finale' }] : []),
+      { kind: 'final' },
+    ];
 }
 applyContent(edited);
 
@@ -174,6 +176,9 @@ function newGame() {
 newGame();
 
 const currentStep = () => steps[game.step] || null;
+// pictures for the tower runners and the catch mystery, from the full question list
+const heroImgs = () => (edited.questions.find((x) => x.type === 'hero')?.options || []).map((o) => o.img);
+const mysteryImg = () => edited.questions.find((x) => x.type === 'pokemon')?.mysteryImg;
 const currentQ = () => {
   const s = currentStep();
   return s && s.kind === 'question' ? content.questions[s.qi] : null;
@@ -215,8 +220,8 @@ function hostView() {
       answer: p.answer, connected: p.connected, bot: p.bot, prevRank: game.lastRanks[p.id] ?? null, hero: p.hero ?? 0, streak: p.streak || 0,
     })),
     isLast: game.step === steps.length - 1,
-    heroImgs: (content.questions.find((x) => x.type === 'hero')?.options || []).map((o) => o.img),
-    mysteryImg: content.questions.find((x) => x.type === 'pokemon')?.mysteryImg,
+    heroImgs: heroImgs(),
+    mysteryImg: mysteryImg(),
     games: content.games,
   };
 }
@@ -234,6 +239,7 @@ function playerView(p) {
     correct: q && showAnswer ? q.correct : null,
     wasCorrect: q && showAnswer ? p.answer === q.correct : null,
     paused: game.paused,
+    mysteryImg: mysteryImg(),
     mg: game.mg && { type: game.mg.type, hero: p.hero, endsAt: game.mg.endsAt, myBonus: game.mg.bonus?.[p.id] ?? null, myPlace: game.mg.results ? game.mg.results.indexOf(p.id) + 1 : null },
   };
 }
@@ -280,6 +286,8 @@ function scoreQuestion() {
 }
 
 function startMinigame(type) {
+  // no superhero question answered (mini games only, or it was skipped): give everyone a random hero
+  if (type === 'climb') { const n = heroImgs().length || 1; for (const p of activePlayers()) if (p.hero == null) p.hero = Math.floor(Math.random() * n); }
   game.mg = { type, status: {}, results: null, bonus: null, endsAt: 0 };
   game.lastRanks = Object.fromEntries(ranked().map((p, i) => [p.id, i + 1]));
   for (const p of activePlayers()) p.lastGain = 0;
@@ -331,7 +339,9 @@ function advance() {
   const s = currentStep();
   switch (game.phase) {
     case 'lobby':
-      game.step = 0; goto('intro'); break;
+      game.step = 0;
+      if (steps[0].kind === 'game') startMinigame(steps[0].type); else goto('intro');
+      break;
     case 'intro':
       if (s.kind === 'question') goto('showcase');
       break;
@@ -356,6 +366,7 @@ function advance() {
       game.step++;
       game.mg = null;
       if (currentStep().kind === 'question') goto('intro');
+      else if (currentStep().kind === 'game') startMinigame(currentStep().type);
       else if (currentStep().kind === 'finale') startMinigame(content.finale);
       else goto('final');
       break;

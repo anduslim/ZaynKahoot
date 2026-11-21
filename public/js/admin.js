@@ -137,6 +137,7 @@
         ${isOpen ? editorHTML(q, i) : ''}
       </article>`;
     }).join('');
+    $('#list').insertAdjacentHTML('afterbegin', data.mode === 'games' ? `<div class="notice">🎮 <b>Mini games only</b> is on (Settings), so these questions are skipped. Switch back to <b>Quiz + mini games</b> to play them.</div>` : '');
     $('#add').innerHTML = `<span>Add a question:</span>${Object.entries(TYPES).map(([k, t]) => `<button class="btn small" data-add="${k}" title="${esc(t.note)}">${t.icon} ${esc(t.name)}</button>`).join('')}`;
     wireList();
   }
@@ -337,6 +338,12 @@
   function renderOrder() {
     if (!data) return;
     const items = [];
+    if (data.mode === 'games') {
+      (data.gamesOnly || []).forEach((g) => items.push(g.on ? `<li class="mg">${MG_ICON[g.type]} ${MINIGAMES[g.type]}</li>` : `<li class="skip">${MINIGAMES[g.type]} <em>(off)</em></li>`));
+      items.push('<li class="mg">🏆 Podium</li>');
+      $('#order').innerHTML = `<li class="note">🎮 Mini games only. Questions are skipped</li>` + items.join('');
+      return;
+    }
     let n = 0;
     data.questions.forEach((q) => {
       if (q.enabled === false) { items.push(`<li class="skip">${esc(q.text || 'New question')} <em>(skipped)</em></li>`); return; }
@@ -352,7 +359,23 @@
   function renderSettings() {
     const g = data.games || {};
     const bonus = data.minigameBonus || [];
+    const gamesMode = data.mode === 'games';
+    const gl = data.gamesOnly || [];
     $('#settingsTab').innerHTML = `
+      <div class="card">
+        <h3>Game mode</h3>
+        <div class="modes">
+          <label class="mode ${!gamesMode ? 'on' : ''}"><input type="radio" name="mode" value="quiz" ${!gamesMode ? 'checked' : ''}><b>❓ Quiz + mini games</b><small>The questions, with the mini games and finale in between</small></label>
+          <label class="mode ${gamesMode ? 'on' : ''}"><input type="radio" name="mode" value="games" ${gamesMode ? 'checked' : ''}><b>🎮 Mini games only</b><small>Skip the questions: play the games below in order, then the podium</small></label>
+        </div>
+        ${gamesMode ? `<div class="lbl">Games to play <small>Switch on/off and put them in order</small></div>
+        <div class="glist">${gl.map((g, k) => `<div class="grow ${g.on ? '' : 'off'}" data-k="${k}">
+          <span class="gname">${MG_ICON[g.type]} ${MINIGAMES[g.type]}</span>
+          <label class="switch"><input type="checkbox" data-gact="on" ${g.on ? 'checked' : ''}><span></span></label>
+          <button class="icon" data-gact="up" ${k === 0 ? 'disabled' : ''} title="Move up">↑</button>
+          <button class="icon" data-gact="down" ${k === gl.length - 1 ? 'disabled' : ''} title="Move down">↓</button>
+        </div>`).join('')}</div>` : ''}
+      </div>
       <div class="card">
         <h3>Game</h3>
         <div class="grid3">
@@ -390,6 +413,14 @@
         <button class="btn danger" id="restore">Restore the original questions</button>
       </div>`;
     bindInputs($('#settingsTab'));
+    $$('#settingsTab input[name="mode"]').forEach((r) => (r.onchange = () => { data.mode = r.value; renderSettings(); markDirty(); }));
+    $$('#settingsTab .grow').forEach((row) => row.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-gact]'); if (!b) return;
+      const k = +row.dataset.k, g = data.gamesOnly;
+      if (b.dataset.gact === 'on') g[k].on = b.checked;
+      else { const to = b.dataset.gact === 'up' ? k - 1 : k + 1; if (to < 0 || to >= g.length) return; g.splice(to, 0, g.splice(k, 1)[0]); }
+      renderSettings(); markDirty();
+    }));
     $$('#settingsTab [data-pick]').forEach((b) => (b.onclick = () => openPicker(b.dataset.pick)));
     $('#restore').onclick = async () => {
       if (!confirm('Throw away all edits and go back to the original questions from content.js?')) return;
