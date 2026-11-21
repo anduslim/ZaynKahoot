@@ -1,0 +1,102 @@
+// Built-in "Christmas" question set. Pick it in Admin → Questions → Question sets.
+// Same format as the questions in content.js. `correct` is the 0-based index of the right answer.
+module.exports = {
+  id: 'christmas',
+  name: 'Christmas',
+  questions: [
+    {
+      id: 'xmas-suit', type: 'food', timeLimit: 20,
+      text: "What colour is Santa's suit?",
+      fact: "Santa's suit is red and white, just like a candy cane!",
+      options: [{ label: 'Red', emoji: '❤️' }, { label: 'Blue', emoji: '💙' }, { label: 'Green', emoji: '💚' }, { label: 'Yellow', emoji: '💛' }],
+      correct: 0,
+    },
+    {
+      id: 'xmas-chimney', type: 'food', timeLimit: 20,
+      text: 'How does Santa get into houses?',
+      fact: 'Santa slides down the chimney with his big sack of presents!',
+      options: [{ label: 'Front door', emoji: '🚪' }, { label: 'Window', emoji: '🪟' }, { label: 'Down the chimney', emoji: '🏠' }, { label: 'In a lift', emoji: '🛗' }],
+      correct: 2,
+    },
+    {
+      id: 'xmas-sleigh', type: 'animal', timeLimit: 20,
+      text: "Which animals pull Santa's sleigh?",
+      fact: 'Reindeer pull Santa’s sleigh all around the world in one night!',
+      options: [
+        { label: 'Horses', emoji: '🐴', sound: '', anim: 'stomp', bg: '#f4a261' },
+        { label: 'Reindeer', emoji: '🦌', sound: 'sparkle', anim: 'fly', bg: '#8ecae6' },
+        { label: 'Dogs', emoji: '🐕', sound: '', anim: 'swing', bg: '#ffb703' },
+        { label: 'Elephants', emoji: '🐘', sound: 'elephant', anim: 'stomp', bg: '#95d5b2' },
+      ],
+      correct: 1,
+    },
+    {
+      id: 'xmas-rudolph', type: 'food', timeLimit: 20,
+      text: 'Which reindeer has a shiny red nose?',
+      fact: "Rudolph's red nose lights the way on foggy nights!",
+      options: [{ label: 'Dasher', emoji: '🦌' }, { label: 'Comet', emoji: '☄️' }, { label: 'Rudolph', emoji: '🔴' }, { label: 'Blitzen', emoji: '⚡' }],
+      correct: 2,
+    },
+    {
+      id: 'xmas-northpole', type: 'food', timeLimit: 20,
+      text: 'Where does Santa live?',
+      fact: 'Santa lives at the snowy North Pole with Mrs Claus and the elves!',
+      options: [{ label: 'On a beach', emoji: '🏝️' }, { label: 'The North Pole', emoji: '❄️' }, { label: 'In a volcano', emoji: '🌋' }, { label: 'In a big city', emoji: '🏙️' }],
+      correct: 1,
+    },
+    {
+      id: 'xmas-elves', type: 'food', timeLimit: 20, minigame: 'climb',
+      text: 'Who helps Santa make the toys?',
+      fact: "Santa's elves work all year long in the toy workshop!",
+      options: [{ label: 'Elves', emoji: '🧝' }, { label: 'Robots', emoji: '🤖' }, { label: 'Superheroes', emoji: '🦸' }, { label: 'Penguins', emoji: '🐧' }],
+      correct: 0,
+    },
+    {
+      id: 'xmas-cookies', type: 'food', timeLimit: 20,
+      text: 'What do we leave out for Santa?',
+      fact: 'Some families leave a carrot for the reindeer too!',
+      options: [{ label: 'Milk and cookies', emoji: '🥛🍪' }, { label: 'Pizza', emoji: '🍕' }, { label: 'Ice cream', emoji: '🍦' }, { label: 'Broccoli', emoji: '🥦' }],
+      correct: 0,
+    },
+    {
+      id: 'xmas-star', type: 'food', timeLimit: 20,
+      text: 'What do we put on top of the Christmas tree?',
+      fact: 'Some families put an angel on top of the tree instead!',
+      options: [{ label: 'A star', emoji: '⭐' }, { label: 'A hat', emoji: '🎩' }, { label: 'A banana', emoji: '🍌' }, { label: 'A shoe', emoji: '👟' }],
+      correct: 0,
+    },
+    {
+      id: 'xmas-snowman', type: 'food', timeLimit: 20,
+      text: 'What do you build with snow?',
+      fact: 'A snowman needs a carrot nose and a warm scarf!',
+      options: [{ label: 'A sandcastle', emoji: '🏰' }, { label: 'A snowman', emoji: '⛄' }, { label: 'A kite', emoji: '🪁' }, { label: 'A train', emoji: '🚂' }],
+      correct: 1,
+    },
+    {
+      id: 'xmas-stocking', type: 'food', timeLimit: 20,
+      text: 'What do we hang up for Santa to fill?',
+      fact: 'Santa fills stockings with little surprises!',
+      options: [{ label: 'A stocking', emoji: '🧦' }, { label: 'A T-shirt', emoji: '👕' }, { label: 'A school bag', emoji: '🎒' }, { label: 'A cap', emoji: '🧢' }],
+      correct: 0,
+    },
+    {
+      id: 'xmas-candycane', type: 'colour', timeLimit: 20,
+      text: 'What colours is a candy cane?',
+      fact: 'Candy canes are red and white and shaped like a hook!',
+      options: [
+        { label: 'Red and white', colors: ['#dc2626', '#ffffff'] },
+        { label: 'Blue and yellow', colors: ['#2563eb', '#facc15'] },
+        { label: 'Pink and purple', colors: ['#ec4899', '#8b5cf6'] },
+        { label: 'Black and orange', colors: ['#111827', '#f97316'] },
+      ],
+      correct: 0,
+    },
+    {
+      id: 'xmas-reindeer-count', type: 'food', timeLimit: 25,
+      text: "How many reindeer pull Santa's sleigh, counting Rudolph?",
+      fact: 'Eight reindeer plus Rudolph makes nine!',
+      options: [{ label: '6', emoji: '6️⃣' }, { label: '8', emoji: '8️⃣' }, { label: '9', emoji: '9️⃣' }, { label: '12', emoji: '🔢' }],
+      correct: 2,
+    },
+  ],
+};

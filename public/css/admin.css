@@ -178,3 +178,15 @@ small { color: var(--muted); font-weight: 600; }
 .notice { padding: 12px 14px; border-radius: 14px; background: rgba(255,201,60,.14); color: #FFE08A; font-weight: 700; }
 .order li.note { background: rgba(255,201,60,.18); color: #FFE08A; white-space: normal; }
 @media (max-width: 560px) { .modes { grid-template-columns: 1fr; } }
+
+/* question sets */
+.sets { background: var(--panel); border-radius: 18px; padding: 12px 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 12px; }
+.set-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.set-tab { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border-radius: 12px; border: 2px solid transparent; background: rgba(255,255,255,.06); color: var(--soft); font-size: 16px; font-weight: 600; }
+.set-tab small { background: rgba(255,255,255,.12); border-radius: 999px; padding: 0 8px; font-size: 12px; color: #fff; }
+.set-tab.on { border-color: var(--yellow); background: rgba(255,201,60,.12); color: #fff; }
+.set-tab .live { color: #8EF0A8; font-size: 12px; }
+.set-tab.add { background: transparent; border: 2px dashed var(--panel2); color: var(--muted); }
+.set-tools { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.set-tools .set-name { flex: 1; min-width: 200px; }
+.pill.ok { background: rgba(43,168,74,.25); color: #b8f5c8; height: 34px; display: inline-flex; align-items: center; padding: 0 12px; font-size: 13px; }

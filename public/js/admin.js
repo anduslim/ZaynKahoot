@@ -26,6 +26,9 @@
   let data = null, saved = '', server = {}, images = [];
   const open = new Set();
   let tab = 'questions';
+  let viewSet = 0;                                   // index of the question set shown in the editor
+  const Q = () => data.sets[viewSet].questions;
+  const QP = () => `sets.${viewSet}.questions`;
 
   // ------------------------------------------------------------------ server
   async function api(method, url, body, raw) {
@@ -41,6 +44,7 @@
   async function load() {
     const st = await api('GET', '/api/admin/content');
     server = st; data = clone(st.content); saved = JSON.stringify(data);
+    viewSet = Math.max(0, data.sets.findIndex((x) => x.id === data.activeSet));
     images = await api('GET', '/api/admin/images').catch(() => []);
     $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
     render();
@@ -67,8 +71,10 @@
 
   async function save(restart = false) {
     try {
+      const viewing = data.sets[viewSet]?.id;
       const st = await api('PUT', '/api/admin/content', { content: data, restart });
       server = st; data = clone(st.content); saved = JSON.stringify(data);
+      viewSet = Math.max(0, data.sets.findIndex((x) => x.id === viewing));
       render();
       if (st.pending) banner(`Saved. A game is in progress, so these changes start with the next game.
         <button class="btn small" id="restartNow">Restart the game now</button>`);
@@ -107,9 +113,10 @@
   };
 
   function renderQuestions() {
-    const n = data.questions.length;
+    renderSets();
+    const n = Q().length;
     let num = 0;
-    $('#list').innerHTML = data.questions.map((q, i) => {
+    $('#list').innerHTML = Q().map((q, i) => {
       const on = q.enabled !== false;
       const t = TYPES[q.type] || TYPES.food;
       const isOpen = open.has(q.id);
@@ -142,12 +149,45 @@
     wireList();
   }
 
+  // ---- question sets: tabs to switch which set you edit, and which one is played
+  function renderSets() {
+    const set = data.sets[viewSet], playing = set.id === data.activeSet;
+    $('#sets').innerHTML = `
+      <div class="set-tabs">${data.sets.map((x, k) => `<button class="set-tab ${k === viewSet ? 'on' : ''}" data-set="${k}">
+          ${x.id === data.activeSet ? '<span class="live" title="This set is played">▶</span>' : ''}<span class="nm">${esc(x.name) || 'Untitled set'}</span><small>${x.questions.length}</small></button>`).join('')}
+        <button class="set-tab add" data-setact="new" title="Start an empty question set">+ New set</button></div>
+      <div class="set-tools">
+        <label class="field set-name"><span class="lbl">Set name</span><input data-path="sets.${viewSet}.name" value="${esc(set.name)}" maxlength="40"></label>
+        ${playing ? '<span class="pill ok">▶ This set is played in the game</span>' : '<button class="btn small primary" data-setact="play">▶ Play this set</button>'}
+        <button class="btn small" data-setact="dup">⧉ Duplicate set</button>
+        ${data.sets.length > 1 ? '<button class="btn small danger" data-setact="del">Delete set</button>' : ''}
+      </div>`;
+    bindInputs($('#sets'));
+    $$('#sets [data-set]').forEach((b) => (b.onclick = () => { viewSet = +b.dataset.set; open.clear(); renderQuestions(); }));
+    $$('#sets [data-setact]').forEach((b) => (b.onclick = () => {
+      const act = b.dataset.setact, rid = () => Math.random().toString(36).slice(2, 7);
+      if (act === 'new') { data.sets.push({ id: 'set-' + rid(), name: 'New set', questions: [] }); viewSet = data.sets.length - 1; }
+      else if (act === 'play') { data.activeSet = set.id; toast(`“${set.name}” will be played. Save to apply`); }
+      else if (act === 'dup') {
+        const c = clone(set); c.id = 'set-' + rid(); c.name = set.name + ' (copy)';
+        c.questions.forEach((q) => { q.id = 'q' + rid(); });
+        data.sets.splice(viewSet + 1, 0, c); viewSet++;
+      } else if (act === 'del') {
+        if (!confirm(`Delete the “${set.name}” question set and its ${set.questions.length} questions?`)) return;
+        data.sets.splice(viewSet, 1);
+        if (playing) data.activeSet = data.sets[0].id;
+        viewSet = Math.min(viewSet, data.sets.length - 1);
+      }
+      open.clear(); renderQuestions(); markDirty();
+    }));
+  }
+
   // ---- one question's editor
   const field = (label, html, hint) => `<label class="field"><span class="lbl">${label}</span>${html}${hint ? `<small>${hint}</small>` : ''}</label>`;
   const inp = (path, v, attrs = '') => `<input data-path="${path}" value="${esc(v ?? '')}" ${attrs}>`;
 
   function editorHTML(q, i) {
-    const p = `questions.${i}`;
+    const p = `${QP()}.${i}`;
     const t = TYPES[q.type] || TYPES.food;
     const mgOptions = Object.entries(MINIGAMES).filter(([k]) => k !== 'catch' || q.type === 'pokemon')
       .map(([k, v]) => `<option value="${k}" ${q.minigame === k || (!q.minigame && !k) ? 'selected' : ''}>${v}</option>`).join('');
@@ -177,7 +217,7 @@
   }
 
   function optionHTML(q, i, o, k) {
-    const p = `questions.${i}.options.${k}`;
+    const p = `${QP()}.${i}.options.${k}`;
     const right = q.correct === k;
     let extra = '';
     if (['hero', 'photo', 'pokemon'].includes(q.type)) extra += imgBtn(`${p}.img`, o.img);
@@ -200,7 +240,7 @@
   function pokemonExtras(q, i) {
     const decoys = new Set(q.shadowDecoys || []);
     return `<div class="extras">
-      ${field('Mystery shadow', `<div class="row">${imgBtn(`questions.${i}.mysteryImg`, q.mysteryImg)}<small>Shown as a purple shadow; caught in the mini game</small></div>`)}
+      ${field('Mystery shadow', `<div class="row">${imgBtn(`${QP()}.${i}.mysteryImg`, q.mysteryImg)}<small>Shown as a purple shadow; caught in the mini game</small></div>`)}
       <div class="field"><span class="lbl">Decoy shadows <small>Rotate with the mystery on the big screen so it isn't a giveaway (${decoys.size} picked)</small></span>
         <div class="decoys">${q.options.filter((o) => o.img).map((o) => `<button class="decoy ${decoys.has(o.img) ? 'on' : ''}" data-act="decoy" data-img="${esc(o.img)}" title="${esc(o.label)}"><img src="${esc(o.img)}" alt=""></button>`).join('')}</div></div>
     </div>`;
@@ -209,7 +249,7 @@
   function countriesExtras(q, i) {
     const rows = q.reveal || [];
     return `<div class="extras"><span class="lbl">Flags on the reveal <small>${rows.length} shown</small></span>
-      <div class="reveal">${rows.map((r, k) => `<div class="rrow"><input class="emoji" data-path="questions.${i}.reveal.${k}.0" value="${esc(r[0])}" maxlength="16"><input data-path="questions.${i}.reveal.${k}.1" value="${esc(r[1])}" maxlength="40"><button class="icon danger" data-act="del-flag" data-k="${k}">✕</button></div>`).join('')}</div>
+      <div class="reveal">${rows.map((r, k) => `<div class="rrow"><input class="emoji" data-path="${QP()}.${i}.reveal.${k}.0" value="${esc(r[0])}" maxlength="16"><input data-path="${QP()}.${i}.reveal.${k}.1" value="${esc(r[1])}" maxlength="40"><button class="icon danger" data-act="del-flag" data-k="${k}">✕</button></div>`).join('')}</div>
       <button class="btn small" data-act="add-flag">+ Add flag</button></div>`;
   }
 
@@ -230,6 +270,7 @@
         setAt(el.dataset.path, v);
         $$(`[data-show="${el.dataset.path}"]`).forEach((s) => (s.textContent = v));
         if (/\.(text|label|emoji|minigame|timeLimit)$/.test(el.dataset.path) && tab === 'questions') refreshHead(el);
+        if (/^sets\.\d+\.name$/.test(el.dataset.path)) { const t = $(`.set-tab[data-set="${viewSet}"] .nm`); if (t) t.textContent = v || 'Untitled set'; }
         markDirty();
       });
     });
@@ -237,7 +278,7 @@
   // update a card's header without re-rendering its editor (keeps typing focus)
   function refreshHead(el) {
     const card = el.closest('.q'); if (!card) return;
-    const q = data.questions[+card.dataset.i];
+    const q = Q()[+card.dataset.i];
     $('.text', card).innerHTML = esc(q.text) || '<em>New question</em>';
     $('.chips', card).innerHTML = `<span class="chip ok">✓ ${answerSummary(q)}</span>${q.minigame ? `<span class="chip mg">${MG_ICON[q.minigame]} ${MINIGAMES[q.minigame]}</span>` : ''}<span class="chip">⏱ ${q.timeLimit}s</span>`;
   }
@@ -269,7 +310,7 @@
   }
 
   function move(from, to) {
-    const qs = data.questions;
+    const qs = Q();
     if (to < 0 || to >= qs.length) return;
     qs.splice(to, 0, qs.splice(from, 1)[0]);
   }
@@ -278,15 +319,15 @@
     const list = $('#list');
     bindInputs(list);
     $$('.q', list).forEach((card) => {
-      const i = +card.dataset.i, q = data.questions[i];
+      const i = +card.dataset.i, q = Q()[i];
       card.addEventListener('click', (e) => {
         const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'INPUT' && b.dataset.act !== 'enable') return;
         const act = b.dataset.act;
         if (act === 'toggle-open') { open.has(q.id) ? open.delete(q.id) : open.add(q.id); }
         else if (act === 'up') move(i, i - 1);
         else if (act === 'down') move(i, i + 1);
-        else if (act === 'dup') { const c = clone(q); c.id = 'q' + Math.random().toString(36).slice(2, 8); data.questions.splice(i + 1, 0, c); open.add(c.id); }
-        else if (act === 'del') { if (!confirm(`Delete “${q.text || 'this question'}”?`)) return; data.questions.splice(i, 1); }
+        else if (act === 'dup') { const c = clone(q); c.id = 'q' + Math.random().toString(36).slice(2, 8); Q().splice(i + 1, 0, c); open.add(c.id); }
+        else if (act === 'del') { if (!confirm(`Delete “${q.text || 'this question'}”?`)) return; Q().splice(i, 1); }
         else if (act === 'correct') q.correct = +b.closest('.opt').dataset.k;
         else if (act === 'del-opt') { const k = +b.closest('.opt').dataset.k; q.options.splice(k, 1); if (q.correct >= k && q.correct > 0) q.correct--; }
         else if (act === 'add-opt') q.options.push({ ...template(q.type).options[0], label: '' });
@@ -301,7 +342,7 @@
       if (type) type.onchange = () => { changeType(q, type.value); renderQuestions(); markDirty(); };
     });
     $$('[data-add]').forEach((b) => (b.onclick = () => {
-      const q = template(b.dataset.add); data.questions.push(q); open.add(q.id);
+      const q = template(b.dataset.add); Q().push(q); open.add(q.id);
       renderQuestions(); markDirty();
       setTimeout(() => { const c = $$('.q').pop(); c?.scrollIntoView({ behavior: 'smooth', block: 'center' }); $('textarea', c)?.focus(); }, 50);
     }));
@@ -322,7 +363,7 @@
         if (!dragging) return;
         const order = $$('.q', list).map((c) => +c.dataset.i);
         dragging = null;
-        if (order.some((v, k) => v !== k)) { data.questions = order.map((k) => data.questions[k]); markDirty(); }
+        if (order.some((v, k) => v !== k)) { const qs = Q(); data.sets[viewSet].questions = order.map((k) => qs[k]); markDirty(); }
         renderQuestions();
       });
     });
@@ -345,7 +386,9 @@
       return;
     }
     let n = 0;
-    data.questions.forEach((q) => {
+    const playing = data.sets.find((x) => x.id === data.activeSet) || data.sets[0];
+    items.push(`<li class="note">▶ Playing: <b>${esc(playing.name)}</b></li>`);
+    playing.questions.forEach((q) => {
       if (q.enabled === false) { items.push(`<li class="skip">${esc(q.text || 'New question')} <em>(skipped)</em></li>`); return; }
       items.push(`<li><b>Q${++n}</b> ${esc(q.text || 'New question')}</li>`);
       if (q.minigame) items.push(`<li class="mg">${MG_ICON[q.minigame]} ${MINIGAMES[q.minigame]}</li>`);
@@ -410,7 +453,7 @@
           <li>Admin password: <b>${server.passwordFromEnv ? 'ADMIN_PASSWORD' : 'random code in the server log'}</b></li>
           <li>Questions are saved on the server ${server.savedToFile ? '(edited copy in use)' : '(using the original content.js)'}</li>
         </ul>
-        <button class="btn danger" id="restore">Restore the original questions</button>
+        <button class="btn danger" id="restore">Restore the original question sets</button>
       </div>`;
     bindInputs($('#settingsTab'));
     $$('#settingsTab input[name="mode"]').forEach((r) => (r.onchange = () => { data.mode = r.value; renderSettings(); markDirty(); }));
@@ -423,8 +466,8 @@
     }));
     $$('#settingsTab [data-pick]').forEach((b) => (b.onclick = () => openPicker(b.dataset.pick)));
     $('#restore').onclick = async () => {
-      if (!confirm('Throw away all edits and go back to the original questions from content.js?')) return;
-      try { const st = await api('POST', '/api/admin/restore'); server = st; data = clone(st.content); saved = JSON.stringify(data); open.clear(); tab = 'questions'; render(); toast(st.pending ? 'Restored. Starts with the next game' : 'Original questions restored'); }
+      if (!confirm('Throw away all edits and go back to the original question sets (Zayn’s birthday + Christmas)?')) return;
+      try { const st = await api('POST', '/api/admin/restore'); server = st; data = clone(st.content); saved = JSON.stringify(data); open.clear(); tab = 'questions'; viewSet = Math.max(0, data.sets.findIndex((x) => x.id === data.activeSet)); render(); toast(st.pending ? 'Restored. Starts with the next game' : 'Original questions restored'); }
       catch (e) { if (e.message !== 'locked') toast(e.message, true); }
     };
   }

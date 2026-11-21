@@ -72,24 +72,52 @@ function cleanQuestion(q, i) {
   return out;
 }
 
+// Built-in question sets added alongside Zayn's birthday questions (each is added once;
+// if the admin later deletes one it stays deleted).
+const BUILTIN_SETS = () => {
+  delete require.cache[require.resolve('./question-sets/christmas')];
+  return [clone(require('./question-sets/christmas'))];
+};
+
+function cleanSet(set, k, ids) {
+  set = set && typeof set === 'object' ? set : {};
+  const id = str(set.id, 30).toLowerCase().replace(/[^a-z0-9-]/g, '') || `set${k + 1}`;
+  const questions = (Array.isArray(set.questions) ? set.questions : []).slice(0, 40).map(cleanQuestion);
+  for (const q of questions) { while (ids.has(q.id)) q.id += '-2'; ids.add(q.id); }   // unique across all sets
+  return { id, name: str(set.name, 40) || `Set ${k + 1}`, questions };
+}
+
 // Validate a whole content object coming from the admin panel. Throws a friendly message.
 function sanitize(c) {
   c = c && typeof c === 'object' ? c : {};
-  const questions = (Array.isArray(c.questions) ? c.questions : []).slice(0, 40).map(cleanQuestion);
+  // question sets; older saves had one `questions` list, which becomes Zayn's birthday set
+  const rawSets = Array.isArray(c.sets) && c.sets.length ? c.sets
+    : [{ id: 'birthday', name: "Zayn's birthday", questions: Array.isArray(c.questions) ? c.questions : [] }];
+  const qids = new Set(), setIds = new Set();
+  const sets = rawSets.slice(0, 12).map((x, k) => cleanSet(x, k, qids));
+  for (const set of sets) { while (setIds.has(set.id)) set.id += '-2'; setIds.add(set.id); }
+  const addedBuiltins = (Array.isArray(c.addedBuiltins) ? c.addedBuiltins : []).map((x) => str(x, 30));
+  for (const b of BUILTIN_SETS()) {
+    if (addedBuiltins.includes(b.id)) continue;
+    addedBuiltins.push(b.id);
+    if (!setIds.has(b.id)) { b.questions.forEach((q) => { q.enabled = true; }); sets.push(cleanSet(b, sets.length, qids)); setIds.add(b.id); }
+  }
+  const active = sets.find((x) => x.id === c.activeSet) || sets[0];
+  const questions = active.questions;                                   // the set being played
+  const allQuestions = sets.flatMap((x) => x.questions);                // pictures can come from any set
+  const hasHero = allQuestions.some((q) => q.type === 'hero');
   const live = questions.filter((q) => q.enabled);
-  if (!live.length && c.mode !== 'games') throw new Error('At least one question has to be switched on');
-  const ids = new Set();
-  for (const q of questions) { while (ids.has(q.id)) q.id += '-2'; ids.add(q.id); }
-  if (live.some((q) => q.minigame === 'climb') && !questions.some((q) => q.type === 'hero')) {
+  const mode = c.mode === 'games' ? 'games' : 'quiz';
+  if (!live.length && mode !== 'games') throw new Error(`The “${active.name}” set needs at least one question switched on`);
+  if (live.some((q) => q.minigame === 'climb') && !hasHero) {
     throw new Error('Hero Tower Escape uses the superhero question’s photos: keep a superhero question, or pick another mini game');
   }
   if (live.some((q) => q.minigame === 'catch' && q.type !== 'pokemon')) {
-    throw new Error('Catch the Mystery only works on the Pokémon question');
+    throw new Error('Catch the Mystery only works on a Pokémon question');
   }
   const finale = FINALES.includes(c.finale) ? c.finale : 'race';
-  if (finale === 'climb' && !questions.some((q) => q.type === 'hero')) throw new Error('The tower finale needs the superhero question’s photos');
+  if (finale === 'climb' && !hasHero) throw new Error('The tower finale needs the superhero question’s photos');
   // "Mini games only" mode: skip the questions and play these games in this order
-  const mode = c.mode === 'games' ? 'games' : 'quiz';
   const seen = new Set();
   const gamesOnly = (Array.isArray(c.gamesOnly) ? c.gamesOnly : [])
     .filter((g) => GAMES.includes(g?.type) && !seen.has(g.type) && seen.add(g.type))
@@ -98,7 +126,7 @@ function sanitize(c) {
   if (mode === 'games') {
     const on = gamesOnly.filter((g) => g.on);
     if (!on.length) throw new Error('Mini games only: switch on at least one game');
-    if (on.some((g) => g.type === 'climb') && !questions.some((q) => q.type === 'hero')) throw new Error('Hero Tower Escape needs the superhero question’s photos (it can be switched off)');
+    if (on.some((g) => g.type === 'climb') && !hasHero) throw new Error('Hero Tower Escape needs the superhero question’s photos (it can be switched off)');
   }
   const bonus = (Array.isArray(c.minigameBonus) ? c.minigameBonus : []).slice(0, 24).map((b) => int(b, 0, 5000, 0));
   return {
@@ -106,7 +134,9 @@ function sanitize(c) {
     mode,
     gamesOnly,
     heightPhoto: img(c.heightPhoto) || '/assets/zayn/batman_fist.png',
-    questions,
+    sets,
+    activeSet: active.id,
+    addedBuiltins,
     finale,
     minigameBonus: bonus.length ? bonus : [600, 500, 400, 320, 260, 220, 190, 170, 150, 130],
     minigameParticipation: int(c.minigameParticipation, 0, 5000, 100),
@@ -119,11 +149,14 @@ function sanitize(c) {
   };
 }
 
-// The original questions from content.js, in the same shape the admin panel edits.
+// The original questions from content.js (Zayn's birthday set) plus the built-in sets,
+// in the same shape the admin panel edits.
 function defaults() {
   delete require.cache[require.resolve('./content')];
   const c = clone(require('./content'));
   c.questions.forEach((q) => { q.enabled = true; });
+  c.sets = [{ id: 'birthday', name: "Zayn's birthday", questions: c.questions }];
+  delete c.questions;
   return sanitize(c);
 }
 
@@ -145,7 +178,10 @@ function save(c) {
 
 function clearSaved() { try { fs.unlinkSync(SAVE_FILE); } catch (e) {} }
 
-// What the running game uses: only questions that are switched on.
-const live = (c) => ({ ...c, questions: c.questions.filter((q) => q.enabled) });
+// What the running game uses: the chosen set's questions that are switched on.
+const activeSet = (c) => c.sets.find((x) => x.id === c.activeSet) || c.sets[0];
+const live = (c) => ({ ...c, setName: activeSet(c).name, questions: activeSet(c).questions.filter((q) => q.enabled) });
+// every question in every set (the active set first): used to find the tower and catch pictures
+const allQuestions = (c) => [activeSet(c), ...c.sets.filter((x) => x !== activeSet(c))].flatMap((x) => x.questions);
 
-module.exports = { sanitize, defaults, load, save, clearSaved, live, DATA_DIR, SAVE_FILE, UPLOAD_DIR, TYPES, MINIGAMES, SOUNDS, ANIMS };
+module.exports = { sanitize, defaults, load, save, clearSaved, live, allQuestions, DATA_DIR, SAVE_FILE, UPLOAD_DIR, TYPES, MINIGAMES, SOUNDS, ANIMS };

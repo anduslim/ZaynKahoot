@@ -177,8 +177,8 @@ newGame();
 
 const currentStep = () => steps[game.step] || null;
 // pictures for the tower runners and the catch mystery, from the full question list
-const heroImgs = () => (edited.questions.find((x) => x.type === 'hero')?.options || []).map((o) => o.img);
-const mysteryImg = () => edited.questions.find((x) => x.type === 'pokemon')?.mysteryImg;
+const heroImgs = () => (store.allQuestions(edited).find((x) => x.type === 'hero')?.options || []).map((o) => o.img);
+const mysteryImg = () => store.allQuestions(edited).find((x) => x.type === 'pokemon')?.mysteryImg;
 const currentQ = () => {
   const s = currentStep();
   return s && s.kind === 'question' ? content.questions[s.qi] : null;

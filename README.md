@@ -37,6 +37,7 @@ Questions read themselves aloud and option showcases play automatically. Press S
 Open `/admin` (or **⚙ Admin** in the host controls) and log in with the admin password:
 `ADMIN_PASSWORD` if you set it, otherwise a 6-digit code printed in the server log at start-up.
 
+- **Question sets:** *Zayn's birthday* and *Christmas* are separate sets. Tabs at the top of the Questions page switch which set you edit; **▶ Play this set** picks the one the game uses. You can also add, duplicate, rename or delete sets. The built-in Christmas set lives in `question-sets/christmas.js`.
 - **Questions:** edit the text, hint, fun fact, time limit, answers and the correct answer. Each question type has its own fields (pictures, emoji, colours, sounds, flags…).
 - **Reorder:** drag the ⠿ handle, or use the ↑ ↓ buttons (works on phones).
 - **Switch questions on/off** without deleting them, duplicate them, or add new ones. The *Picture answers* type is good for photo questions; upload photos from the picture picker.
