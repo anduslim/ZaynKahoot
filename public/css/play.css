@@ -135,3 +135,4 @@ input.txt { width: 100%; height: 54px; border-radius: 16px; border: 0; padding: 
 .my-answer { font-family: var(--display); font-size: 24px; font-weight: 500; background: var(--panel); border-radius: 16px; padding: 10px 16px; max-width: 100%; word-break: break-word; }
 .result .why { margin-top: 14px; background: rgba(0,0,0,.22); border-radius: 16px; padding: 10px 14px; font-size: 17px; line-height: 1.35; text-align: left; }
 .result .why .mine { font-family: var(--display); font-size: 19px; font-weight: 600; margin-bottom: 4px; word-break: break-word; }
+.group-name { font-family: var(--display); font-size: 26px; font-weight: 700; color: var(--yellow, #FFC93C); margin-top: 4px; word-break: break-word; }

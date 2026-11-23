@@ -643,7 +643,7 @@ io.on('connection', (socket) => {
       p = { id, score: 0, lastGain: 0, answer: null, bot: false, streak: 0 };
       game.players.set(id, p);
     }
-    if (name) p.name = String(name).slice(0, 14);
+    if (name) p.name = String(name).replace(/\s+/g, ' ').trim().slice(0, 20);
     if (avatar) p.avatar = cleanAvatar(avatar);
     p.name = p.name || 'Player';
     p.avatar = p.avatar || randomAvatar();
@@ -657,7 +657,7 @@ io.on('connection', (socket) => {
   socket.on('profile', ({ name, avatar }) => {
     const p = game.players.get(socket.data.playerId);
     if (!p) return;
-    if (name) p.name = String(name).slice(0, 14);
+    if (name) p.name = String(name).replace(/\s+/g, ' ').trim().slice(0, 20);
     if (avatar) p.avatar = cleanAvatar(avatar);
     p.ready = true;
     broadcast();

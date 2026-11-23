@@ -23,9 +23,9 @@ body { overflow: hidden; }
 .step .d b { color: #fff; word-break: break-all; }
 .players-head { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--display); font-size: 3.4vh; font-weight: 600; }
 .players-head small { font-family: var(--body); font-size: 2vh; color: var(--muted); }
-.player-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2.6vh 1vw; padding-top: 3vh; }
+.player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15vw, 1fr)); gap: 2.6vh 1vw; padding-top: 3vh; }
 .pchip { display: flex; flex-direction: column; align-items: center; gap: .6vh; cursor: pointer; position: relative; }
-.pchip .nm { font-weight: 800; font-size: 2vh; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pchip .nm { font-weight: 800; font-size: 2.4vh; max-width: 100%; text-align: center; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
 .pchip.off { opacity: .4; }
 .pchip .kick { position: absolute; top: -1vh; right: 0; background: var(--red); border: 0; color: #fff; border-radius: 999px; font-size: 1.6vh; padding: .4vh 1vh; }
 
