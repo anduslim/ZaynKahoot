@@ -16,6 +16,8 @@ const FINALES = ['race', 'climb', 'none'];
 const GAMES = ['climb', 'catch', 'race'];
 const SOUNDS = ['', 'lion', 'elephant', 'monkey', 'toucan', 'dino', 'boing', 'whoosh', 'sparkle', 'cheer'];
 const ANIMS = ['roar', 'stomp', 'fly', 'swing'];
+// animated scene on the big screen for a question (public/js/scenes.js); '' = none
+const SCENES = ['', 'wreath', 'rose-candle', 'gaudete', 'candle-words', 'vestment', 'heart', 'two-comings', 'visitation', 'bethlehem', 'manger', 'magi', 'gifts', 'stars', 'snow'];
 const GAME_DEFAULTS = { raceLaps: 3, climbSeconds: 90, catchSeconds: 60 };
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -62,6 +64,9 @@ function cleanQuestion(q, i) {
     timeLimit: int(q.timeLimit, 5, 180, 20),
     minigame: MINIGAMES.includes(q.minigame) ? q.minigame : '',
   };
+  // a question saved before scenes existed takes the built-in set's scene for the same question id
+  if (SCENES.includes(q.scene)) out.scene = q.scene;
+  else if (q.scene === undefined && builtinScenes().has(out.id)) out.scene = builtinScenes().get(out.id);
   if (type === 'choice') {
     // one or more right answers; groups pick `pick` of them
     const raw = Array.isArray(q.correct) ? q.correct : [q.correct];
@@ -111,6 +116,15 @@ const BUILTIN_SETS = () => [SETS_DIR, DATA_SETS_DIR].flatMap((dir) => {
     .map((f) => readSetFile(path.join(dir, f)))
     .filter((x) => x && typeof x === 'object' && x.id && Array.isArray(x.questions));
 });
+
+let sceneCache = null;
+function builtinScenes() {
+  if (!sceneCache) {
+    sceneCache = new Map();
+    for (const b of BUILTIN_SETS()) for (const q of b.questions) if (q && q.id && SCENES.includes(q.scene)) sceneCache.set(String(q.id), q.scene);
+  }
+  return sceneCache;
+}
 
 function cleanSet(set, k, ids) {
   set = set && typeof set === 'object' ? set : {};
@@ -241,4 +255,4 @@ const live = (c) => {
 // every question in every set (the active set first): used to find the tower and catch pictures
 const allQuestions = (c) => [activeSet(c), ...c.sets.filter((x) => x !== activeSet(c))].flatMap((x) => x.questions);
 
-module.exports = { sanitize, defaults, load, save, clearSaved, live, allQuestions, activeSet, DATA_DIR, SAVE_FILE, UPLOAD_DIR, TYPES, MINIGAMES, SOUNDS, ANIMS };
+module.exports = { sanitize, defaults, load, save, clearSaved, live, allQuestions, activeSet, DATA_DIR, SAVE_FILE, UPLOAD_DIR, TYPES, MINIGAMES, SOUNDS, ANIMS, SCENES };

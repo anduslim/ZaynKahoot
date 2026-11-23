@@ -1,5 +1,6 @@
 import { startClimb } from './games/climb.js';
 import { startRace } from './games/race.js';
+import { mountScene, stopScene, has3D } from './scenes3d.js';
 
 const socket = io();
 const stage = document.getElementById('stage');
@@ -82,8 +83,17 @@ function togglePaused(p) {
 
 // ------------------------------------------------------------- helpers
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-function view(html) { stage.innerHTML = html; return stage.firstElementChild; }
+function view(html) { stage.innerHTML = html; hydrateScenes(); return stage.firstElementChild; }
+// Question scenes: 3D (three.js) on the big screen; the drawn SVG version stays if WebGL is missing.
+function hydrateScenes() {
+  const el = stage.querySelector('.scene-host');
+  if (!el) { stopScene(); return; }
+  try { if (has3D(el.dataset.scene) && mountScene(el, el.dataset.scene, el.dataset.mood)) el.classList.add('is3d'); }
+  catch (e) { console.warn('3D scene failed, using the drawn one', e); }
+}
 const q = () => S.question;
+// the question's animated scene (js/scenes.js); '' when it has none
+const sceneHTML = (qq, mood) => (qq && qq.scene && window.Scenes && Scenes.has(qq.scene) ? `<div class="scene-host" data-scene="${esc(qq.scene)}" data-mood="${mood}">${Scenes.html(qq.scene, mood)}</div>` : '');
 
 function optionInner(o, type, i) {
   let lead = '';
@@ -297,7 +307,7 @@ async function showcase(st) {
     return;
   }
   if (qq.type === 'choice') {          // plain multiple choice: the answers pop in one after another
-    view(`<div class="screen">${qHead(st, false)}<div class="feature" id="feat"><div class="emoji-big pop">${qq.pick > 1 ? '✌️' : '🤔'}</div></div>${optionsGrid(st, { hidden: true })}</div>`);
+    view(`<div class="screen">${qHead(st, false)}<div class="feature" id="feat">${sceneHTML(qq, 'ask') || `<div class="emoji-big pop">${qq.pick > 1 ? '✌️' : '🤔'}</div>`}</div>${optionsGrid(st, { hidden: true })}</div>`);
     await sleep(400);
     for (const el of stage.querySelectorAll('.opt')) { if (t !== token) return; el.classList.remove('hidden-opt'); el.classList.add('pop'); Sound.play('pop'); await sleep(650); }
     await sleep(900); if (t === token) advance();
@@ -327,7 +337,8 @@ function answering(st) {
   Sound.music('question');
   const qq = st.question;
   view(`<div class="screen">${qHead(st, true)}
-    <div class="feature">${qq.type === 'pokemon'
+    <div class="feature">${sceneHTML(qq, 'ask') ? (qq.type === 'text' ? `<div class="scene-wrap">${sceneHTML(qq, 'ask')}<div class="hint">Type your answer on your phone${qq.needed > 1 ? ` · name ${qq.needed}` : ''}</div></div>` : sceneHTML(qq, 'ask'))
+      : qq.type === 'pokemon'
       ? shadowMonHTML(qq.mysteryImg, { style: 'width:28vh' })
       : qq.type === 'height' ? heightScene()
       : qq.type === 'text' ? `<div class="write-it"><div class="emoji-big" style="font-size:20vh;animation:floaty 2s infinite">✍️</div><div class="hint">Type your answer on your phone${qq.needed > 1 ? ` · name ${qq.needed}` : ''}</div></div>`
@@ -398,7 +409,7 @@ async function reveal(st) {
     const right = st.players.filter((p) => p.correct).length;
     view(`<div class="screen">${qHead(st, false)}
       <div class="judge-head"><div class="accepted big"><span class="kicker">The answer</span> ${acceptedHTML(st)}</div></div>
-      <div class="jgrid" id="jgrid"></div></div>`);
+      ${sceneHTML(qq, 'reveal') ? `<div class="reveal-row"><div class="feature scene-side">${sceneHTML(qq, 'reveal')}</div><div class="jgrid" id="jgrid"></div></div>` : '<div class="jgrid" id="jgrid"></div>'}</div>`);
     renderJudging(st);
     Sound.play(right ? 'correct' : 'wrong');
     if (right) confetti();
@@ -420,6 +431,9 @@ async function reveal(st) {
     qq.reveal.forEach((_, i) => setTimeout(() => t === token && Sound.play('pop'), i * 180));
   } else if (qq.type === 'pokemon') {
     feat.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:1vh">${imgOrTile(right.img, right.label, 'hero-img')}<div class="hint">Now catch the mystery one!</div></div>`;
+  } else if (sceneHTML(qq, 'reveal')) {      // the question's animation, now showing the answer
+    feat.innerHTML = sceneHTML(qq, 'reveal'); hydrateScenes();
+    Sound.play('sparkle');
   } else if (rightIdx.length > 1) {          // several right answers: show them all
     feat.innerHTML = `<div class="multi-right">${rightIdx.map((i, k) => `<div class="mr pop" style="animation-delay:${k * 0.15}s;background:${OPT_COLORS[i]}">${qq.options[i].emoji ? `<span class="em">${esc(qq.options[i].emoji)}</span>` : ''}${esc(qq.options[i].label)}</div>`).join('')}</div>`;
     Sound.play('pop');

@@ -105,3 +105,8 @@ a { color: var(--yellow); }
 }
 .pres .pwhy { margin-top: 10px; background: rgba(0,0,0,.22); border-radius: 12px; padding: 8px 12px; font-size: 14px; line-height: 1.35; text-align: left; }
 .pres .pwhy .mine { font-weight: 700; margin-bottom: 3px; word-break: break-word; }
+
+/* animated scene in the simulator */
+.sscene { flex: 1; min-height: 180px; max-height: 340px; display: flex; }
+.sscene .scene svg { border-radius: 14px; }
+.sstage .sres { align-self: center; }

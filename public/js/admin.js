@@ -223,6 +223,7 @@
         ${field('Fun fact', inp(`${p}.fact`, q.fact, 'maxlength="120" placeholder="Read out after the answer"'))}
         ${field('Mini game afterwards', `<select data-path="${p}.minigame">${mgOptions}</select>`)}
       </div>
+      ${(q.type === 'choice' || q.type === 'text') && window.Scenes ? field('Animation on the big screen', `<select data-path="${p}.scene">${Object.entries(Scenes.LIST).map(([k, v]) => `<option value="${k}" ${(q.scene || '') === k ? 'selected' : ''}>${v}</option>`).join('')}</select>`, 'Plays while groups answer, then shows the answer at the reveal. It never gives the answer away early.') : ''}
       ${data.sets[viewSet].timer === false ? '<small class="muted">No timer in this set: the question stays open until everyone has answered or you press Next.</small>'
         : field(`Time to answer: <b data-show="${p}.timeLimit">${q.timeLimit}</b> seconds`, `<input type="range" min="5" max="180" step="5" data-path="${p}.timeLimit" data-kind="int" value="${q.timeLimit}">`)}
       ${q.type === 'text' ? textExtras(q, i) : `

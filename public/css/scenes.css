@@ -1,0 +1,92 @@
+/* Animated question scenes (js/scenes.js). Everything is SVG, sized by its box. */
+.scene { width: 100%; height: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.scene svg { height: 100%; width: auto; max-width: 100%; aspect-ratio: 400 / 240; overflow: hidden; border-radius: 3vh; }
+.scene svg * { transform-box: fill-box; transform-origin: center; }
+.scene svg [transform] { transform-box: view-box; transform-origin: 0 0; }   /* SVG's own transform attributes */
+.scene .sc-label { font-family: var(--display, system-ui, sans-serif); font-weight: 700; fill: #fff; text-anchor: middle;
+  paint-order: stroke; stroke: rgba(18, 10, 48, .85); stroke-width: 4px; stroke-linejoin: round; }
+.scene .sc-emoji { text-anchor: middle; dominant-baseline: central; }
+
+/* candles */
+.sc-flame { transform-origin: 50% 100%; animation: scFlicker .8s ease-in-out infinite alternate; }
+@keyframes scFlicker { from { transform: scale(1, 1) rotate(-4deg); } to { transform: scale(.88, 1.14) rotate(4deg); } }
+.sc-light { animation: scLight .7s cubic-bezier(.2, 1.5, .4, 1) both; animation-delay: var(--d, 0s); }
+@keyframes scLight { from { opacity: 0; transform: scale(.1); } to { opacity: 1; transform: none; } }
+.sc-to-rose { animation: scRose 1s ease-in both; animation-delay: .5s; }
+@keyframes scRose { from { fill: #CBD5E1; } to { fill: #F472B6; } }
+
+/* light, stars, glow */
+.sc-glow { animation: scGlow 2.2s ease-in-out infinite; }
+@keyframes scGlow { 50% { opacity: .55; transform: scale(1.18); } }
+.sc-twinkle { animation: scTwinkle 2.4s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes scTwinkle { 50% { opacity: .2; } }
+.sc-spin-slow { animation: spin 14s linear infinite; }
+.sc-fadein { animation: scFade 1.2s ease-out both; animation-delay: var(--d, 0s); }
+@keyframes scFade { from { opacity: 0; } to { opacity: 1; } }
+.sc-rays { animation: scRays 1s ease-out both, spin 30s linear infinite; animation-delay: var(--d, 0s), var(--d, 0s); transform-origin: 200px 112px; transform-box: view-box; }
+@keyframes scRays { from { opacity: 0; scale: .3; } to { opacity: .8; scale: 1; } }
+
+/* entrances */
+.sc-pop { animation: popIn .6s cubic-bezier(.2, 1.4, .4, 1) both; animation-delay: var(--d, 0s); }
+.sc-rise { animation: scRise .8s ease-out both; animation-delay: var(--d, 0s); }
+@keyframes scRise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+.sc-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: scDraw 1.2s .5s ease-out forwards; }
+@keyframes scDraw { to { stroke-dashoffset: 0; } }
+.sc-dash { animation: scFade 1s .6s both, scDashMove 1.6s linear infinite; }
+@keyframes scDashMove { to { stroke-dashoffset: -26; } }
+
+/* gentle loops */
+.sc-q { animation: scQ 1.6s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes scQ { 0%, 100% { transform: scale(1) rotate(-6deg); } 50% { transform: scale(1.15) rotate(6deg); } }
+.sc-float { animation: scFloat 3s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes scFloat { 50% { transform: translateY(-6px); } }
+.sc-bob { animation: scBob .5s ease-in-out infinite alternate; animation-delay: var(--d, 0s); }
+@keyframes scBob { to { transform: translateY(-4px) rotate(3deg); } }
+.sc-beat { animation: scBeat 1.2s ease-in-out infinite; }
+@keyframes scBeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.07); } 30% { transform: scale(.98); } 45% { transform: scale(1.04); } }
+.sc-shake { animation: scShake 1.6s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes scShake { 0%, 60%, 100% { transform: none; } 70% { transform: rotate(-9deg); } 80% { transform: rotate(9deg); } 90% { transform: rotate(-5deg); } }
+.sc-flip { animation: scFlip 3s ease-in-out infinite; }
+@keyframes scFlip { 0%, 40% { transform: rotate(0); } 50%, 90% { transform: rotate(180deg); } 100% { transform: rotate(360deg); } }
+.sc-note { animation: scNote 3s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes scNote { 0% { opacity: 0; transform: translateY(10px) rotate(-10deg); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(-40px) rotate(10deg); } }
+.sc-floatup { animation: scFloatUp 2.6s ease-out infinite; animation-delay: var(--d, 0s); }
+@keyframes scFloatUp { 0% { opacity: 0; transform: translateY(10px) scale(.6); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-34px) scale(1.1); } }
+.sc-hop { animation: scHop 1.8s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes scHop { 0%, 60%, 100% { transform: none; } 20% { transform: translateY(-16px) rotate(-6deg); } 40% { transform: translateY(0) scale(1.05, .95); } }
+.sc-leap { animation: scLeap 1.1s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes scLeap { 0%, 100% { transform: translateY(0) rotate(0); } 40% { transform: translateY(-26px) rotate(-12deg); } 60% { transform: translateY(-26px) rotate(12deg); } }
+.sc-lean-r { animation: scLeanR 2s ease-in-out infinite; }
+@keyframes scLeanR { 50% { transform: rotate(6deg) translateX(3px); } }
+.sc-lean-l { animation: scLeanL 2s ease-in-out infinite; }
+@keyframes scLeanL { 50% { transform: rotate(-6deg) translateX(-3px); } }
+.sc-munch { animation: scRise .8s ease-out both, scMunch .9s ease-in-out 1s infinite; animation-delay: var(--d, 0s), 1.2s; }
+@keyframes scMunch { 50% { transform: rotate(-10deg) translateY(4px); } }
+.sc-descend { animation: scDescend 1.6s ease-out both, scFloat 3s ease-in-out 3s infinite; animation-delay: var(--d, 0s), 3.2s; }
+@keyframes scDescend { from { opacity: 0; transform: translateY(-90px); } to { opacity: 1; transform: none; } }
+.sc-smoke { animation: scSmoke 2.4s ease-out infinite; animation-delay: var(--d, 0s); }
+@keyframes scSmoke { 0% { opacity: 0; transform: translateY(8px) scaleY(.6); } 30% { opacity: .85; } 100% { opacity: 0; transform: translateY(-26px) scaleY(1.2); } }
+.sc-drip { animation: scDrip 1.6s ease-in infinite; animation-delay: var(--d, 0s); }
+@keyframes scDrip { 0% { opacity: 0; transform: none; } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(30px); } }
+.sc-shine { animation: scShine 2.2s ease-in-out infinite; }
+@keyframes scShine { 0% { transform: translateX(0) skewX(-20deg); opacity: 0; } 30% { opacity: .8; } 60%, 100% { transform: translateX(70px) skewX(-20deg); opacity: 0; } }
+.sc-cycle { animation: scCycle 6s steps(1) infinite; }
+@keyframes scCycle { 0% { fill: #16A34A; } 20% { fill: #DC2626; } 40% { fill: #F8F5EE; } 60% { fill: #EAB308; } 80% { fill: #1F2937; } }
+.sc-fall { animation: scFall var(--t, 6s) linear infinite; animation-delay: var(--d, 0s); }
+@keyframes scFall { from { transform: translate(0, 0); } 50% { transform: translate(8px, 130px); } to { transform: translate(0, 260px); } }
+.sc-shoot { animation: scShoot 4s ease-in infinite; }
+@keyframes scShoot { 0%, 70% { opacity: 0; transform: none; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-160px, 64px); } }
+
+/* moving across the scene */
+.sc-walkin { animation: scWalk 6s linear infinite; }
+@keyframes scWalk { from { transform: translate(-30px, 186px); } 85% { opacity: 1; } to { transform: translate(290px, 186px); opacity: 0; } }
+.sc-walkin-r { animation: scWalkR 3.4s ease-out both; animation-delay: var(--d, 0s); }
+@keyframes scWalkR { from { opacity: 0; transform: translateX(260px); } 15% { opacity: 1; } to { transform: none; } }
+.sc-wander { animation: scWander 7s ease-in-out infinite; }
+@keyframes scWander { 0%, 100% { transform: translateX(-120px); } 33% { transform: translateX(0); } 66% { transform: translateX(120px); } }
+.sc-glide { animation: scGlide 2s ease-out both; }
+@keyframes scGlide { from { transform: translate(-240px, -10px); } to { transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .scene svg * { animation-duration: .01s !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; }
+}
