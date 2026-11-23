@@ -540,7 +540,7 @@
           ${server.ai?.fromAdmin && (server.ai?.env?.baseUrl) ? '<button class="btn ghost" id="aiReset">Use the server’s LLM_* settings</button>' : ''}
           <span id="aiResult" class="muted"></span>
         </div>
-        <p class="muted small">Saved on the server (DATA_DIR/ai.json), not in the question sets. These win over the LLM_BASE_URL / LLM_MODEL / LLM_API_KEY settings. On Olares, use the model’s <b>Shared entrance</b> address: the normal entrance needs a sign-in, which the quiz server can’t do.</p>
+        <p class="muted small">Saved on the server (DATA_DIR/ai.json), not in the question sets. These win over the LLM_BASE_URL / LLM_MODEL / LLM_API_KEY settings. On Olares, when the model runs on the same Olares as the quiz, use the model app’s normal (Internal) entrance address.</p>
       </div>
       <div class="card">
         <h3>Preview for co-organisers</h3>
