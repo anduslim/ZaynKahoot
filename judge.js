@@ -128,7 +128,7 @@ async function call(pathname, body, timeout = TIMEOUT) {
     });
     const type = res.headers.get('content-type') || '';
     if ((res.status >= 300 && res.status < 400) || type.includes('text/html')) {
-      throw new Error('The AI address answered with a sign-in page instead of the AI. On Olares, use the model’s Shared entrance address (or set its entrance to Public)');
+      throw new Error('The AI address answered with a sign-in page instead of the AI. On Olares, run the quiz on the same Olares as the model and use its Internal entrance, or set the entrance to Public');
     }
     if (res.status === 401 || res.status === 403) throw new Error(`The AI server refused the request (${res.status}). Check the API key`);
     if (res.status === 404) throw new Error(`Nothing at ${baseUrl}${pathname} (404). The address usually ends in /v1`);

@@ -27,7 +27,7 @@ LLM_TIMEOUT_MS=20000                       # optional
 
 The AI gets the question, the accepted answers and the question's **marking guide** (Admin → the question → *Marking guide for the AI judge*), and replies point / no point with a one-line reason, which the host sees under each answer. It runs automatically whenever an AI address is set (the model name is optional for llama.cpp).
 
-**On Olares:** use the model app's **Shared entrance** address. The normal entrance (Internal) shows an Olares sign-in page, which the quiz server can't get past; the Test button says so if that happens.
+**On Olares:** when the model runs on the same Olares as the quiz, use the model app's normal (Internal) entrance address, e.g. `https://xxxx.you.olares.com/v1`. The quiz's requests come from inside Olares, so no sign-in is needed. If Test reports a sign-in page, the quiz can't reach that entrance from where it runs: set the entrance to Public, or run the model somewhere the quiz can reach.
 
 After time is up, the projector shows every group's answer with a ✓ or ✕. **Click an answer to flip it**, then press Space to reveal. If the model can't be reached, the screen says so (with *Try again*) and unmatched answers wait for the host's tap. Clicking during the reveal corrects the score too. **Admin → Settings → Test the AI judge** checks the connection.
 
