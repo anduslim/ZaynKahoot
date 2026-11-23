@@ -163,8 +163,10 @@ async function judge(q, list, title) {
 async function test() {
   const t0 = Date.now();
   const q = { text: 'In which city was Jesus born?', answers: ['Bethlehem'], needed: 1 };
-  const r = await judge(q, [{ id: 'a', text: 'betlehem' }, { id: 'b', text: 'Paris' }]);
-  return { ok: r.a?.correct === true && r.b?.correct === false, ms: Date.now() - t0, results: r };
+  const samples = [{ id: 'a', text: 'betlehem', expect: true }, { id: 'b', text: 'Paris', expect: false }];
+  const r = await judge(q, samples);
+  const checks = samples.map((x) => ({ text: x.text, expect: x.expect, correct: r[x.id]?.correct ?? null, reason: r[x.id]?.reason || '' }));
+  return { ok: checks.every((c) => c.correct === c.expect), ms: Date.now() - t0, question: q.text, checks, results: r };
 }
 
 module.exports = { enabled, info, setConfig, models, localMatch, judge, test, parseResults, cleanUrl };

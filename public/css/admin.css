@@ -195,3 +195,7 @@ small { color: var(--muted); font-weight: 600; }
 .check input { width: 20px; height: 20px; }
 code { background: rgba(255,255,255,.08); padding: 1px 6px; border-radius: 6px; }
 .set-tools .set-check { margin: 0 0 10px; white-space: nowrap; }
+
+#aiResult .ai-checks { display: block; margin-top: 6px; font-size: .9em; color: var(--muted, #c9c3ef); line-height: 1.5; }
+#aiResult .ai-checks .ok { color: #8EF0A8; }
+#aiResult .ai-checks .bad { color: #FF9AA2; }
