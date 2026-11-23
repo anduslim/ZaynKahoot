@@ -16,7 +16,7 @@ WIFI_SSID="YourWifi" WIFI_PASSWORD="secret" ADMIN_PASSWORD="1234" npm start
 - **Preview:** each set has a link name (slug, set in Admin) and its own page at `/<slug>/preview`, e.g. `/advent/preview`; `/preview` lists all sets. Co-organisers see every question with its answers, and **▶ Simulate the game** plays the set start to finish (big screen + phone side by side, same scoring, typed answers go to the real judge). No joining or QR code. Set `PREVIEW_KEY` to lock these pages (`?key=…`); without it they are open to anyone with the link.
 
 ### AI judge for typed answers (optional)
-*Typed answer* questions let each group type its answer. Short answers are matched by keyword (spelling slips allowed), and if an OpenAI-compatible endpoint is set, a model judges every answer:
+*Typed answer* questions let each group type its answer. Short answers are matched by keyword (spelling slips allowed), and if an OpenAI-compatible endpoint is set, a model judges every answer. Set it in **Admin → Settings → AI judge**: paste the address (e.g. `http://192.168.1.20:8080`, `/v1` is added for you), optionally the model name and API key, then *Save* (it tests the connection straight away). It is saved in `DATA_DIR/ai.json` and wins over these environment variables, which also work:
 
 ```bash
 LLM_BASE_URL="http://localhost:11434/v1"   # Ollama; LM Studio is http://localhost:1234/v1
@@ -25,7 +25,9 @@ LLM_API_KEY=""                             # optional
 LLM_TIMEOUT_MS=20000                       # optional
 ```
 
-The AI gets the question, the accepted answers and the question's **marking guide** (Admin → the question → *Marking guide for the AI judge*), and replies point / no point with a one-line reason, which the host sees under each answer. It runs automatically whenever `LLM_BASE_URL` and `LLM_MODEL` are set.
+The AI gets the question, the accepted answers and the question's **marking guide** (Admin → the question → *Marking guide for the AI judge*), and replies point / no point with a one-line reason, which the host sees under each answer. It runs automatically whenever an AI address is set (the model name is optional for llama.cpp).
+
+**On Olares:** use the model app's **Shared entrance** address. The normal entrance (Internal) shows an Olares sign-in page, which the quiz server can't get past; the Test button says so if that happens.
 
 After time is up, the projector shows every group's answer with a ✓ or ✕. **Click an answer to flip it**, then press Space to reveal. If the model can't be reached, the screen says so (with *Try again*) and unmatched answers wait for the host's tap. Clicking during the reveal corrects the score too. **Admin → Settings → Test the AI judge** checks the connection.
 

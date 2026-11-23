@@ -527,20 +527,50 @@
       </div>
       <div class="card">
         <h3>AI judge for typed answers</h3>
-        ${server.ai?.enabled ? `<p>Using <b>${esc(server.ai.model)}</b> at <code>${esc(server.ai.baseUrl)}</code>.</p>
-          <button class="btn" id="aiTest">Test the AI judge</button> <span id="aiResult" class="muted"></span>`
-        : `<p class="muted">Off. Typed answers are matched by keywords and the host taps each one right or wrong. To turn it on, start the server with <code>LLM_BASE_URL</code> (an OpenAI-compatible address such as <code>http://localhost:11434/v1</code> for Ollama) and <code>LLM_MODEL</code>, and optionally <code>LLM_API_KEY</code>.</p>`}
+        <p class="muted">${server.ai?.enabled ? `On: <b>${esc(server.ai.model || 'default model')}</b> at <code>${esc(server.ai.baseUrl)}</code>. Typed answers are judged automatically; the host can still flip any verdict.` : 'Off: typed answers are matched by keywords and the host taps each one right or wrong.'}</p>
+        <div class="grid3">
+          ${field('AI address (OpenAI-compatible)', `<input id="aiUrl" value="${esc(server.ai?.baseUrl || '')}" placeholder="http://my-llama:8080/v1" autocapitalize="off" autocorrect="off" spellcheck="false">`, 'llama.cpp, Ollama, LM Studio, vLLM… Usually ends in /v1 (added for you). Blank = AI off.')}
+          ${field('Model', `<input id="aiModel" value="${esc(server.ai?.model || '')}" placeholder="optional for llama.cpp" list="aiModels" autocapitalize="off" autocorrect="off" spellcheck="false"><datalist id="aiModels"></datalist>`, '<a href="#" id="aiList">List the models on the server</a>')}
+          ${field('API key (optional)', `<input id="aiKey" type="password" placeholder="${server.ai?.hasKey ? '•••••• saved (leave blank to keep)' : 'none'}" autocomplete="off">`, server.ai?.hasKey ? '<label><input type="checkbox" id="aiKeyClear"> remove the saved key</label>' : '')}
+        </div>
+        <div class="row" style="flex-wrap:wrap">
+          <button class="btn primary" id="aiSave">Save AI settings</button>
+          <button class="btn" id="aiTest">Test the AI judge</button>
+          ${server.ai?.fromAdmin && (server.ai?.env?.baseUrl) ? '<button class="btn ghost" id="aiReset">Use the server’s LLM_* settings</button>' : ''}
+          <span id="aiResult" class="muted"></span>
+        </div>
+        <p class="muted small">Saved on the server (DATA_DIR/ai.json), not in the question sets. These win over the LLM_BASE_URL / LLM_MODEL / LLM_API_KEY settings. On Olares, use the model’s <b>Shared entrance</b> address: the normal entrance needs a sign-in, which the quiz server can’t do.</p>
       </div>
       <div class="card">
         <h3>Preview for co-organisers</h3>
         <p>Share <a href="/preview" target="_blank"><b>/preview</b></a>: it lists every question set with the answers, and lets people try the questions, without joining the game. ${server.previewKey ? 'It needs the key in <code>PREVIEW_KEY</code>: share <code>/preview?key=…</code>.' : 'Anyone with the link can open it; set <code>PREVIEW_KEY</code> to lock it.'}</p>
       </div>`;
-    const at = $('#aiTest');
-    if (at) at.onclick = async () => {
-      $('#aiResult').textContent = 'Asking the model…';
-      try { const r = await api('POST', '/api/admin/ai-test'); $('#aiResult').textContent = r.ok ? `Works (${(r.ms / 1000).toFixed(1)}s)` : `Problem: ${r.error || 'the model gave odd answers ' + JSON.stringify(r.results)}`; }
-      catch (e) { $('#aiResult').textContent = e.message; }
+    const aiOut = (msg, bad) => { const el = $('#aiResult'); el.textContent = msg; el.style.color = bad ? '#FF9AA2' : bad === false ? '#8EF0A8' : ''; };
+    const saveAI = async (body) => { const r = await api('PUT', '/api/admin/ai', body); server.ai = r.ai; return r.ai; };
+    $('#aiSave').onclick = async () => {
+      const body = { baseUrl: $('#aiUrl').value, model: $('#aiModel').value };
+      if ($('#aiKey').value) body.apiKey = $('#aiKey').value; else if ($('#aiKeyClear')?.checked) body.apiKey = '';
+      try { const ai = await saveAI(body); renderSettings(); aiOut(ai.enabled ? 'Saved. Testing…' : 'Saved. AI judge is off'); if (ai.enabled) $('#aiTest').click(); }
+      catch (e) { aiOut(e.message, true); }
     };
+    $('#aiTest').onclick = async () => {
+      aiOut('Asking the model… (a big model can take a while)');
+      try { const r = await api('POST', '/api/admin/ai-test'); r.ok ? aiOut(`✓ Works: it judged two test answers correctly in ${(r.ms / 1000).toFixed(1)}s`, false) : aiOut(r.error ? `✕ ${r.error}` : `✕ It answered, but judged the test wrongly: ${JSON.stringify(r.results)}`, true); }
+      catch (e) { aiOut(e.message, true); }
+    };
+    $('#aiList').onclick = async (e) => {
+      e.preventDefault();
+      if ($('#aiUrl').value.trim() !== (server.ai?.baseUrl || '')) { aiOut('Save the address first, then list the models', true); return; }
+      aiOut('Asking the server for its models…');
+      try {
+        const r = await api('GET', '/api/admin/ai/models');
+        if (!r.ok) return aiOut(`✕ ${r.error}`, true);
+        $('#aiModels').innerHTML = r.models.map((m) => `<option value="${esc(m)}">`).join('');
+        if (r.models.length === 1 && !$('#aiModel').value) $('#aiModel').value = r.models[0];
+        aiOut(r.models.length ? `Models: ${r.models.join(', ')}` : 'The server lists no models (fine for llama.cpp)', false);
+      } catch (err) { aiOut(err.message, true); }
+    };
+    const rs = $('#aiReset'); if (rs) rs.onclick = async () => { try { await saveAI({ clear: true }); renderSettings(); aiOut('Using the server’s LLM_* settings'); } catch (e) { aiOut(e.message, true); } };
     bindInputs($('#settingsTab'));
     $$('#settingsTab input[name="mode"]').forEach((r) => (r.onchange = () => { data.mode = r.value; renderSettings(); markDirty(); }));
     $$('#settingsTab .grow').forEach((row) => row.addEventListener('click', (e) => {
