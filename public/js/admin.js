@@ -149,7 +149,8 @@
         ${isOpen ? editorHTML(q, i) : ''}
       </article>`;
     }).join('');
-    $('#list').insertAdjacentHTML('afterbegin', data.mode === 'games' ? `<div class="notice">🎮 <b>Mini games only</b> is on (Settings), so these questions are skipped. Switch back to <b>Quiz + mini games</b> to play them.</div>` : '');
+    const qo = data.sets[viewSet].quizOnly;
+    $('#list').insertAdjacentHTML('afterbegin', qo ? `<div class="notice">❓ <b>Quiz only</b>: this set plays just its questions: no mini games, no finale, and no Wi-Fi QR code in the lobby.</div>` : data.mode === 'games' ? `<div class="notice">🎮 <b>Mini games only</b> is on (Settings), so these questions are skipped. Switch back to <b>Quiz + mini games</b> to play them.</div>` : '');
     $('#add').innerHTML = `<span>Add a question:</span>${Object.entries(TYPES).map(([k, t]) => `<button class="btn small" data-add="${k}" title="${esc(t.note)}">${t.icon} ${esc(t.name)}</button>`).join('')}`;
     wireList();
   }
@@ -165,7 +166,8 @@
         <label class="field set-name"><span class="lbl">Set name</span><input data-path="sets.${viewSet}.name" value="${esc(set.name)}" maxlength="40"></label>
         <label class="field set-name"><span class="lbl">Title on screen</span><input data-path="sets.${viewSet}.title" value="${esc(set.title || '')}" maxlength="60" placeholder="${esc(data.title)}"></label>
         <label class="field set-small"><span class="lbl">Points per right answer</span><input type="number" min="1" max="5000" data-path="sets.${viewSet}.points" data-kind="int" value="${set.points ?? 1000}"></label>
-        <label class="field set-small"><span class="lbl">Finale</span><select data-path="sets.${viewSet}.finale">${[['', 'As in Settings'], ['none', 'No finale'], ['race', 'Grand Prix'], ['climb', 'Hero Tower Escape']].map(([v, l]) => `<option value="${v}" ${(set.finale || '') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label class="check set-check" title="Only the questions: no mini games, no finale and no Wi-Fi QR code in the lobby, whatever Settings says"><input type="checkbox" data-path="sets.${viewSet}.quizOnly" ${set.quizOnly ? 'checked' : ''}> Quiz only</label>
+        <label class="field set-small ${set.quizOnly ? 'hidden' : ''}"><span class="lbl">Finale</span><select data-path="sets.${viewSet}.finale">${[['', 'As in Settings'], ['none', 'No finale'], ['race', 'Grand Prix'], ['climb', 'Hero Tower Escape']].map(([v, l]) => `<option value="${v}" ${(set.finale || '') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
         ${playing ? '<span class="pill ok">▶ This set is played in the game</span>' : '<button class="btn small primary" data-setact="play">▶ Play this set</button>'}
         <button class="btn small" data-setact="dup">⧉ Duplicate set</button>
         ${data.sets.length > 1 ? '<button class="btn small danger" data-setact="del">Delete set</button>' : ''}
@@ -293,6 +295,7 @@
         $$(`[data-show="${el.dataset.path}"]`).forEach((s) => (s.textContent = v));
         if (/\.(text|label|emoji|minigame|timeLimit|answers|pick)$/.test(el.dataset.path) && tab === 'questions') refreshHead(el);
         if (/^sets\.\d+\.finale$/.test(el.dataset.path)) renderOrder();
+        if (/^sets\.\d+\.quizOnly$/.test(el.dataset.path)) { renderQuestions(); }
         if (/^sets\.\d+\.name$/.test(el.dataset.path)) { const t = $(`.set-tab[data-set="${viewSet}"] .nm`); if (t) t.textContent = v || 'Untitled set'; }
         markDirty();
       });
@@ -431,7 +434,8 @@
   function renderOrder() {
     if (!data) return;
     const items = [];
-    if (data.mode === 'games') {
+    const playingSet = data.sets.find((x) => x.id === data.activeSet) || data.sets[0];
+    if (data.mode === 'games' && !playingSet.quizOnly) {
       (data.gamesOnly || []).forEach((g) => items.push(g.on ? `<li class="mg">${MG_ICON[g.type]} ${MINIGAMES[g.type]}</li>` : `<li class="skip">${MINIGAMES[g.type]} <em>(off)</em></li>`));
       items.push('<li class="mg">🏆 Podium</li>');
       $('#order').innerHTML = `<li class="note">🎮 Mini games only. Questions are skipped</li>` + items.join('');
@@ -443,9 +447,9 @@
     playing.questions.forEach((q) => {
       if (q.enabled === false) { items.push(`<li class="skip">${esc(q.text || 'New question')} <em>(skipped)</em></li>`); return; }
       items.push(`<li><b>Q${++n}</b> ${esc(q.text || 'New question')}</li>`);
-      if (q.minigame) items.push(`<li class="mg">${MG_ICON[q.minigame]} ${MINIGAMES[q.minigame]}</li>`);
+      if (q.minigame && !playing.quizOnly) items.push(`<li class="mg">${MG_ICON[q.minigame]} ${MINIGAMES[q.minigame]}</li>`);
     });
-    const fin = playing.finale || data.finale;
+    const fin = playing.quizOnly ? 'none' : playing.finale || data.finale;
     if (fin !== 'none') items.push(`<li class="mg finale">🏁 Finale: ${MINIGAMES[fin]}</li>`);
     items.push('<li class="mg">🏆 Podium</li>');
     $('#order').innerHTML = items.join('');

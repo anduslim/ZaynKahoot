@@ -233,6 +233,7 @@ socket.on('state', (st) => { st._recv = performance.now(); });
 function lobby(st) {
   Sound.music('lobby');
   const joinUrl = (config.publicUrl || location.origin) + '/play?pin=' + st.pin;
+  const wifiQr = st.hideWifi ? '' : config.wifiQr;
   view(`<div class="screen">
     <div class="deco" style="left:-6vh;top:60vh;width:30vh;height:30vh;border-radius:50%;background:var(--red);opacity:.18"></div>
     <div class="deco" style="right:-5vh;top:-6vh;width:26vh;height:26vh;border-radius:5vh;transform:rotate(18deg);background:var(--green);opacity:.2"></div>
@@ -241,10 +242,10 @@ function lobby(st) {
       <div class="pin"><span class="kicker">Game PIN</span><b>${st.pin}</b></div>
     </div>
     <div class="steps">
-      ${config.wifiQr ? `<div class="step"><img class="qr" src="/qr.svg?text=${encodeURIComponent(config.wifiQr)}" alt="Wi-Fi QR">
+      ${wifiQr ? `<div class="step"><img class="qr" src="/qr.svg?text=${encodeURIComponent(wifiQr)}" alt="Wi-Fi QR">
         <div><div class="n">STEP 1</div><div class="t">Join the Wi-Fi</div><div class="d">Scan with your camera<br>Network: <b>${esc(config.wifiSsid)}</b></div></div></div>` : ''}
       <div class="step"><img class="qr" src="/qr.svg?text=${encodeURIComponent(joinUrl)}" alt="Join QR">
-        <div><div class="n">${config.wifiQr ? 'STEP 2' : 'JOIN'}</div><div class="t">Join the game</div><div class="d">Scan, or go to<br><b>${esc(joinUrl.replace(/^https?:\/\//, '').replace(/\?pin=.*/, ''))}</b><br>PIN <b>${st.pin}</b></div></div></div>
+        <div><div class="n">${wifiQr ? 'STEP 2' : 'JOIN'}</div><div class="t">Join the game</div><div class="d">Scan, or go to<br><b>${esc(joinUrl.replace(/^https?:\/\//, '').replace(/\?pin=.*/, ''))}</b><br>PIN <b>${st.pin}</b></div></div></div>
     </div>
     <div class="players-head"><span>Players <span style="color:var(--yellow)" id="pcount">0</span></span><small>Tap a player to remove · Space to start</small></div>
     <div class="player-grid" id="pgrid"></div>
