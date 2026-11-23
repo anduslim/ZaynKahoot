@@ -103,3 +103,5 @@ a { color: var(--yellow); }
   .sstage, .sphone { flex: none; overflow: visible; }
   .pscreen { min-height: 460px; }
 }
+.pres .pwhy { margin-top: 10px; background: rgba(0,0,0,.22); border-radius: 12px; padding: 8px 12px; font-size: 14px; line-height: 1.35; text-align: left; }
+.pres .pwhy .mine { font-weight: 700; margin-bottom: 3px; word-break: break-word; }

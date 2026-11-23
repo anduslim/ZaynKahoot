@@ -178,11 +178,11 @@ function render(st, changed) {
       ${typeof st.answer === 'string' ? `<div class="my-answer">“${esc(st.answer)}”</div>` : '<div class="sub">No answer this time</div>'}<div class="sub">Look at the big screen</div></div>`;
     return;
   }
-  if (P === 'reveal' && !changed && app.dataset.v !== 'reveal:' + st.wasCorrect) changed = true;   // the host changed our verdict
+  if (P === 'reveal' && !changed && app.dataset.v !== 'reveal:' + st.wasCorrect + (st.why || '')) changed = true;   // the host changed our verdict
   app.dataset.v = '';
   if (P === 'reveal') {
     if (!changed) return;
-    app.dataset.v = 'reveal:' + st.wasCorrect;
+    app.dataset.v = 'reveal:' + st.wasCorrect + (st.why || '');
     const ok = st.wasCorrect;
     Sound.play(ok ? 'correct' : 'wrong');
     navigator.vibrate?.(ok ? [60, 40, 60] : 200);
@@ -191,7 +191,8 @@ function render(st, changed) {
       <div class="tick">${ok ? '✓' : st.answer == null ? '⏰' : '✕'}</div>
       <div class="big">${ok ? 'Correct' : st.answer == null ? "Time's up!" : 'Not this time'}</div>
       ${ok && streak >= 2 ? `<div class="streak-pill">Answer streak 🔥 ${streak}</div>` : ''}
-      <div class="gain">${ok ? '+ ' + st.me.lastGain : 'Answer: ' + esc(rightAnswer(st))}</div></div>
+      <div class="gain">${ok ? '+ ' + st.me.lastGain : 'Answer: ' + esc(rightAnswer(st))}</div>
+      ${st.why ? `<div class="why">${typeof st.answer === 'string' ? `<div class="mine">“${esc(st.answer)}”</div>` : ''}${st.why === 'The host checked this one' ? '👤' : '🤖'} ${esc(st.why)}</div>` : ''}</div>
       ${st.showRanks ? `<div class="rank-line">${st.me.rank <= 3 ? "You're on the podium! 🏆" : `You're ${ordinal(st.me.rank)} of ${st.me.of}`}</div>` : ''}</div>`;
     return;
   }

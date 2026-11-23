@@ -320,6 +320,9 @@ function playerView(p) {
     answer: p.answer,
     correct: q && showAnswer ? q.correct : null,
     wasCorrect: q && showAnswer ? answerCorrect(q, p) : null,
+    // why a typed answer got (or missed) the point: the AI's short reason, or the host's call
+    why: q?.type === 'text' && showAnswer && typeof p.answer === 'string' && p.answer.trim()
+      ? (p.verdictBy === 'host' ? 'The host checked this one' : p.verdictReason || '') : '',
     paused: game.paused,
     mysteryImg: mysteryImg(),
     mg: game.mg && { type: game.mg.type, hero: p.hero, endsAt: game.mg.endsAt, myBonus: game.mg.bonus?.[p.id] ?? null, myPlace: game.mg.results ? game.mg.results.indexOf(p.id) + 1 : null },
