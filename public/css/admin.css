@@ -194,3 +194,4 @@ small { color: var(--muted); font-weight: 600; }
 .check { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-weight: 700; }
 .check input { width: 20px; height: 20px; }
 code { background: rgba(255,255,255,.08); padding: 1px 6px; border-radius: 6px; }
+.set-tools .set-check { margin: 0 0 10px; white-space: nowrap; }

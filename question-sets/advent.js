@@ -15,6 +15,7 @@ module.exports = {
   title: 'Advent Trivia',
   points: 1,
   finale: 'none',
+  quizOnly: true,
   questions: [
     {
       id: 'adv-sundays', type: 'choice', timeLimit: 30,

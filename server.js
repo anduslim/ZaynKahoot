@@ -158,8 +158,8 @@ app.get('/config.json', (req, res) => {
   const esc = (s) => s.replace(/([\\;,:"])/g, '\\$1');
   res.json({
     title: content.title,
-    wifiSsid: WIFI.ssid,
-    wifiQr: WIFI.ssid ? `WIFI:T:${WIFI.type};S:${esc(WIFI.ssid)};P:${esc(WIFI.password)};;` : '',
+    wifiSsid: content.quizOnly ? '' : WIFI.ssid,
+    wifiQr: WIFI.ssid && !content.quizOnly ? `WIFI:T:${WIFI.type};S:${esc(WIFI.ssid)};P:${esc(WIFI.password)};;` : '',
     publicUrl: process.env.PUBLIC_URL || '',
   });
 });
@@ -266,6 +266,7 @@ function hostView() {
   return {
     title: content.title,
     points: content.points,
+    hideWifi: !!content.quizOnly,                  // quiz-only sets: no Wi-Fi QR in the lobby
     showRanks,
     grading: game.grading,
     accepted: q?.type === 'text' && (showAnswer || game.phase === 'grading') ? q.answers : null,

@@ -122,6 +122,7 @@ function cleanSet(set, k, ids) {
     title: str(set.title, 60),                                        // shown on the screens; blank = the game title
     points: int(set.points, 1, 5000, 1000),                           // per right answer (no speed bonus)
     finale: FINALES.includes(set.finale) ? set.finale : '',            // blank = the Settings finale
+    quizOnly: set.quizOnly === true,                                   // questions only: no mini games, no finale
     questions,
   };
   if (!out.title) delete out.title;
@@ -147,9 +148,9 @@ function sanitize(c) {
   const questions = active.questions;                                   // the set being played
   const allQuestions = sets.flatMap((x) => x.questions);                // pictures can come from any set
   const hasHero = allQuestions.some((q) => q.type === 'hero');
-  const live = questions.filter((q) => q.enabled);
+  const live = questions.filter((q) => q.enabled).map((q) => (active.quizOnly ? { ...q, minigame: '' } : q));
   const mode = c.mode === 'games' ? 'games' : 'quiz';
-  if (!live.length && mode !== 'games') throw new Error(`The “${active.name}” set needs at least one question switched on`);
+  if (!live.length && (mode !== 'games' || active.quizOnly)) throw new Error(`The “${active.name}” set needs at least one question switched on`);
   if (live.some((q) => q.minigame === 'climb') && !hasHero) {
     throw new Error('Hero Tower Escape uses the superhero question’s photos: keep a superhero question, or pick another mini game');
   }
@@ -164,13 +165,13 @@ function sanitize(c) {
     .filter((g) => GAMES.includes(g?.type) && !seen.has(g.type) && seen.add(g.type))
     .map((g) => ({ type: g.type, on: g.on !== false }));
   for (const t of GAMES) if (!seen.has(t)) gamesOnly.push({ type: t, on: true });
-  if (mode === 'games') {
+  if (mode === 'games' && !active.quizOnly) {
     const on = gamesOnly.filter((g) => g.on);
     if (!on.length) throw new Error('Mini games only: switch on at least one game');
     if (on.some((g) => g.type === 'climb') && !hasHero) throw new Error('Hero Tower Escape needs the superhero question’s photos (it can be switched off)');
   }
   // a set's own finale must work too
-  const setFinale = active.finale || finale;
+  const setFinale = active.quizOnly ? 'none' : active.finale || finale;
   if (setFinale === 'climb' && !hasHero) throw new Error('The tower finale needs the superhero question’s photos');
   const bonus = (Array.isArray(c.minigameBonus) ? c.minigameBonus : []).slice(0, 24).map((b) => int(b, 0, 5000, 0));
   return {
@@ -229,7 +230,10 @@ const live = (c) => {
   const set = activeSet(c);
   return {
     ...c, setName: set.name, title: set.title || c.title, points: set.points ?? 1000,
-    finale: set.finale || c.finale, questions: set.questions.filter((q) => q.enabled),
+    finale: set.quizOnly ? 'none' : set.finale || c.finale,
+    mode: set.quizOnly ? 'quiz' : c.mode,
+    quizOnly: !!set.quizOnly,
+    questions: set.questions.filter((q) => q.enabled).map((q) => (set.quizOnly && q.minigame ? (({ minigame, ...rest }) => rest)(q) : q)),
   };
 };
 // every question in every set (the active set first): used to find the tower and catch pictures
