@@ -102,7 +102,15 @@ const adminState = () => ({
   ai: judge.info(),
   previewKey: !!PREVIEW_KEY,
 });
+// AI judge address / model / key from Admin → Settings (saved in DATA_DIR/ai.json, wins over LLM_* env)
+app.put('/api/admin/ai', adminOnly, express.json({ limit: '8kb' }), (req, res) => {
+  try { res.json({ ok: true, ai: judge.setConfig(req.body || {}) }); } catch (e) { res.status(400).json({ error: e.message }); }
+});
+app.get('/api/admin/ai/models', adminOnly, async (req, res) => {
+  try { res.json({ ok: true, models: await judge.models() }); } catch (e) { res.json({ ok: false, error: e.message }); }
+});
 app.post('/api/admin/ai-test', adminOnly, async (req, res) => {
+  if (!judge.enabled()) return res.json({ ok: false, error: 'Set the AI address first' });
   try { res.json(await judge.test()); } catch (e) { res.json({ ok: false, error: e.message }); }
 });
 app.get('/api/admin/content', adminOnly, (req, res) => res.json(adminState()));
@@ -705,7 +713,7 @@ server.listen(PORT, () => {
   console.log(`  Players     : http://localhost:${PORT}/play`);
   console.log(`  Admin panel : http://localhost:${PORT}/admin  (password: ${process.env.ADMIN_PASSWORD ? 'from ADMIN_PASSWORD' : ADMIN_KEY})`);
   console.log(`  Preview     : http://localhost:${PORT}/preview${PREVIEW_KEY ? '?key=<PREVIEW_KEY>' : '  (open to anyone; set PREVIEW_KEY to lock it)'}`);
-  console.log(`  AI judge    : ${judge.enabled() ? `${judge.info().model} at ${judge.info().baseUrl}` : 'off (set LLM_BASE_URL and LLM_MODEL); the host judges typed answers'}`);
+  console.log(`  AI judge    : ${judge.enabled() ? `${judge.info().model || 'default model'} at ${judge.info().baseUrl}` : 'off (set it in Admin → Settings, or LLM_BASE_URL); the host judges typed answers'}`);
   console.log(`  Questions   : ${fromFile ? store.SAVE_FILE + ' (edited in the admin panel)' : 'content.js'}`);
   console.log(`  For phones (HTTPS needed for tilt on iPhone):  cloudflared tunnel --url http://localhost:${PORT}\n`);
 });
