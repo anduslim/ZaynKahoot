@@ -11,11 +11,17 @@ let game = null;         // running 3D mini game
 let token = 0;           // cancels async sequences on phase change
 let lastTick = -1;
 
-fetch('/config.json').then((r) => r.json()).then((c) => { config = c; if (S && S.phase === 'lobby') enter(S); });
+fetch('/config.json').then((r) => r.json()).then((c) => {
+  config = c;
+  const h = document.querySelector('.splash .brand'); if (h) h.innerHTML = brandHTML(c.title);
+  document.title = c.title + ' · Host';
+  if (S && S.phase === 'lobby') enter(S);
+});
+const title = () => S?.title || config.title || 'Quiz';
 
 // ------------------------------------------------------------- splash
 stage.innerHTML = `<div class="screen splash">
-  <h1 class="h-title brand"><span class="z">Zayn's</span> <span class="k">Kahoot</span></h1>
+  <h1 class="h-title brand">&nbsp;</h1>
   <p style="color:var(--soft);font-size:2.6vh">Host screen · put this on the projector</p>
   <button class="big-btn" id="go">Start hosting</button>
 </div>`;
@@ -36,6 +42,9 @@ socket.on('state', (st) => {
   else update(st, prev);
   document.getElementById('ctl-phase').textContent = st.phase.replace('_', ' ');
   document.getElementById('ctl-pause').style.display = st.phase === 'answering' ? '' : 'none';
+  const rk = document.getElementById('ctl-ranks');
+  rk.textContent = st.showRanks ? 'Rankings: on' : 'Rankings: off';
+  rk.classList.toggle('off', !st.showRanks);
   togglePaused(st.paused);
 });
 socket.on('input', ({ id, steer }) => game?.input(id, steer));
@@ -46,6 +55,7 @@ const advance = () => socket.emit('host:advance');
 document.getElementById('ctl-next').onclick = advance;
 document.getElementById('ctl-pause').onclick = () => socket.emit('host:pause');
 document.getElementById('ctl-bots').onclick = () => socket.emit('host:bots', 5);
+document.getElementById('ctl-ranks').onclick = () => socket.emit('host:ranks');
 document.getElementById('ctl-mute').onclick = (e) => { Sound.setMuted(!Sound.isMuted()); e.target.textContent = Sound.isMuted() ? 'Unmute' : 'Mute'; };
 document.getElementById('ctl-fs').onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen());
 document.getElementById('ctl-reset').onclick = (e) => {
@@ -57,6 +67,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowRight') { e.preventDefault(); advance(); }
   if (e.code === 'KeyP') socket.emit('host:pause');
   if (e.code === 'KeyB') socket.emit('host:bots', 5);
+  if (e.code === 'KeyR') socket.emit('host:ranks');
   if (e.code === 'KeyM') document.getElementById('ctl-mute').click();
   if (e.code === 'KeyF') document.getElementById('ctl-fs').click();
 });
@@ -82,18 +93,22 @@ function optionInner(o, type, i) {
   return `<span class="shape">${OPT_SHAPES[i]}</span>${lead}<span>${esc(o.label)}</span>`;
 }
 
+// is option i a right answer? (`correct` is a list for multiple-choice questions)
+const isRight = (st, i) => (Array.isArray(st.correct) ? st.correct.includes(i) : i === st.correct);
+
 function optionsGrid(st, opts = {}) {
   const qq = st.question;
+  if (qq.type === 'text') return '';
   if (qq.type === 'pokemon') {
     return `<div class="pgrid">${qq.options.map((o, i) => `
-      <div class="ptile ${opts.reveal ? (i === st.correct ? 'right' : 'dim') : ''}" data-i="${i}">
+      <div class="ptile ${opts.reveal ? (isRight(st, i) ? 'right' : 'dim') : ''}" data-i="${i}">
         ${imgOrTile(o.img, o.label, '', '?')}<span class="pn">${esc(o.label)}</span>
         ${opts.reveal && st.counts[i] ? `<span class="pc">${st.counts[i]}</span>` : ''}
       </div>`).join('')}</div>`;
   }
   const total = Math.max(1, st.counts.reduce((a, b) => a + b, 0));
-  return `<div class="opts">${qq.options.map((o, i) => `
-    <div class="opt ${opts.hidden ? 'hidden-opt' : ''} ${opts.reveal ? (i === st.correct ? 'right' : 'dim') : ''}" data-i="${i}" style="background:${OPT_COLORS[i]}">
+  return `<div class="opts ${qq.options.length > 4 ? 'six' : ''} ${qq.options.some((o) => o.label.length > 22) ? 'long' : ''}">${qq.options.map((o, i) => `
+    <div class="opt ${opts.hidden ? 'hidden-opt' : ''} ${opts.reveal ? (isRight(st, i) ? 'right' : 'dim') : ''}" data-i="${i}" style="background:${OPT_COLORS[i]}">
       ${optionInner(o, qq.type, i)}
       ${opts.reveal ? `<span class="cnt">${st.counts[i]}</span><span class="bar" style="width:${(st.counts[i] / total) * 100}%"></span>` : ''}
     </div>`).join('')}</div>`;
@@ -103,7 +118,7 @@ function qHead(st, withTimer) {
   const qq = st.question;
   return `<div class="qhead">
     ${withTimer ? `<div class="timer"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" stroke="rgba(255,255,255,.15)" stroke-width="10" fill="none"/><circle id="tring" cx="50" cy="50" r="44" stroke="#FFC93C" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><b id="tnum">${Math.ceil(st.remaining / 1000)}</b></div>` : ''}
-    <div class="q"><div class="kicker">Question ${qq.index + 1} of ${qq.total}</div>${esc(qq.text)}</div>
+    <div class="q"><div class="kicker">Question ${qq.index + 1} of ${qq.total}${qq.pick > 1 ? ` · <span class="pick">Pick ${qq.pick}</span>` : ''}${qq.type === 'text' ? ' · <span class="pick">Type your answer</span>' : ''}</div>${esc(qq.text)}</div>
     ${withTimer ? `<div class="answered"><b id="ansn">${st.answered}</b><span>answers</span></div>` : ''}
   </div>`;
 }
@@ -178,6 +193,7 @@ function enter(st, prev) {
   if (P === 'intro') return intro(st);
   if (P === 'showcase') return showcase(st);
   if (P === 'answering') return answering(st);
+  if (P === 'grading') return grading(st);
   if (P === 'reveal') return reveal(st);
   if (P === 'mg_intro') return mgIntro(st);
   if (P === 'mg_play') return mgPlay(st);
@@ -191,6 +207,8 @@ function update(st, prev) {
   if (st.phase === 'answering') {
     const a = document.getElementById('ansn'); if (a) a.textContent = st.answered;
   }
+  if (st.phase === 'grading') renderJudging(st);
+  if ((st.phase === 'reveal' || st.phase === 'scoreboard') && st.question?.type === 'text') renderJudging(st);
   if (st.phase === 'mg_play' && st.mg?.type === 'catch') renderCatchCards(st);
   if (st.phase === 'mg_play' && game) game.updatePlayers?.(st.players);
 }
@@ -219,7 +237,7 @@ function lobby(st) {
     <div class="deco" style="left:-6vh;top:60vh;width:30vh;height:30vh;border-radius:50%;background:var(--red);opacity:.18"></div>
     <div class="deco" style="right:-5vh;top:-6vh;width:26vh;height:26vh;border-radius:5vh;transform:rotate(18deg);background:var(--green);opacity:.2"></div>
     <div class="lobby-top">
-      <h1 class="h-title brand" style="font-size:9vh"><span class="z">Zayn's</span> <span class="k">Kahoot</span></h1>
+      <h1 class="h-title brand" style="font-size:${title().length > 18 ? 7 : 9}vh">${brandHTML(title())}</h1>
       <div class="pin"><span class="kicker">Game PIN</span><b>${st.pin}</b></div>
     </div>
     <div class="steps">
@@ -275,6 +293,13 @@ async function showcase(st) {
     await sleep(1800); if (t === token) advance();
     return;
   }
+  if (qq.type === 'choice') {          // plain multiple choice: the answers pop in one after another
+    view(`<div class="screen">${qHead(st, false)}<div class="feature" id="feat"><div class="emoji-big pop">${qq.pick > 1 ? '✌️' : '🤔'}</div></div>${optionsGrid(st, { hidden: true })}</div>`);
+    await sleep(400);
+    for (const el of stage.querySelectorAll('.opt')) { if (t !== token) return; el.classList.remove('hidden-opt'); el.classList.add('pop'); Sound.play('pop'); await sleep(650); }
+    await sleep(900); if (t === token) advance();
+    return;
+  }
   view(`<div class="screen">${qHead(st, false)}<div class="feature" id="feat">${qq.type === 'height' ? heightScene() : ''}</div>${optionsGrid(st, { hidden: true })}</div>`);
   const feat = document.getElementById('feat');
   const tiles = [...stage.querySelectorAll('.opt')];
@@ -301,7 +326,9 @@ function answering(st) {
   view(`<div class="screen">${qHead(st, true)}
     <div class="feature">${qq.type === 'pokemon'
       ? shadowMonHTML(qq.mysteryImg, { style: 'width:28vh' })
-      : qq.type === 'height' ? heightScene() : `<div class="emoji-big" style="font-size:22vh;animation:floaty 2s infinite">🤔</div>`}</div>
+      : qq.type === 'height' ? heightScene()
+      : qq.type === 'text' ? `<div class="write-it"><div class="emoji-big" style="font-size:20vh;animation:floaty 2s infinite">✍️</div><div class="hint">Type your answer on your phone${qq.needed > 1 ? ` · name ${qq.needed}` : ''}</div></div>`
+      : `<div class="emoji-big" style="font-size:22vh;animation:floaty 2s infinite">${qq.pick > 1 ? '✌️' : '🤔'}</div>`}</div>
     ${optionsGrid(st)}</div>`);
   if (qq.type === 'height') setTimeout(() => setHeight(60, '?'), 50);
   if (qq.type === 'pokemon') startShadowLineup(qq);
@@ -315,14 +342,71 @@ function startShadowLineup(qq) {
   cycleShadowMon(stage.querySelector('.shadowmon'), lineup, () => t === token);
 }
 
+// ---- judging typed answers: every group's answer, with the AI's (or the host's) verdict.
+// Click an answer to mark it right or wrong; press Space to reveal.
+function grading(st) {
+  Sound.music(null);
+  Sound.play('whoosh');
+  view(`<div class="screen">${qHead(st, false)}
+    <div class="judge-head"><div class="accepted"><span class="kicker">Accepted</span> ${acceptedHTML(st)}</div><div id="jstatus"></div></div>
+    <div class="jgrid" id="jgrid"></div>
+    <div class="kicker judge-tip">Click an answer to mark it right or wrong · Space to reveal</div></div>`);
+  renderJudging(st);
+}
+const acceptedHTML = (st) => (st.accepted || []).map((a) => `<span class="acc">${esc(a.split('/').map((x) => x.trim()).filter(Boolean).slice(0, 3).join(' / '))}</span>`).join('');
+
+function renderJudging(st) {
+  const g = document.getElementById('jgrid'); if (!g) return;
+  const judging = st.phase === 'grading';
+  const by = { ai: '🤖 AI', match: '✓ word match', host: '👤 host', blank: 'no answer' };
+  g.innerHTML = st.players.map((p) => {
+    const v = judging ? p.verdict : p.correct;
+    const cls = v === true ? 'yes' : v === false ? 'no' : 'maybe';
+    return `<button class="jcard ${cls}" data-id="${p.id}" title="${esc(p.verdictReason || '')}">
+      <div class="jtop">${avatarHTML(p.avatar, 44)}<span class="nm">${esc(p.name)}</span><span class="vd">${v === true ? '✓' : v === false ? '✕' : '?'}</span></div>
+      <div class="ans">${typeof p.answer === 'string' && p.answer ? esc(p.answer) : '<em>No answer</em>'}</div>
+      <div class="by">${p.verdictBy ? by[p.verdictBy] || '' : judging && st.grading?.status === 'checking' ? 'checking…' : 'tap to judge'}${p.verdictReason ? ' · ' + esc(p.verdictReason) : ''}</div>
+    </button>`;
+  }).join('') || '<div class="hint">No players yet</div>';
+  g.querySelectorAll('.jcard').forEach((el) => el.onclick = () => {
+    const p = st.players.find((x) => x.id === el.dataset.id);
+    const now = judging ? p.verdict : p.correct;
+    socket.emit('host:verdict', { id: el.dataset.id, correct: now !== true });
+  });
+  const s = document.getElementById('jstatus');
+  if (s && judging) {
+    const gr = st.grading || {};
+    const left = st.players.filter((p) => p.verdict == null).length;
+    s.innerHTML = gr.status === 'checking' ? '<span class="pill">🤖 The AI judge is checking…</span>'
+      : gr.status === 'error' ? `<span class="pill bad">AI judge: ${esc(gr.error || 'failed')}</span> <button class="small-btn" id="regrade">Try again</button>`
+      : gr.status === 'off' ? '<span class="pill">No AI judge: tap each answer</span>'
+      : '<span class="pill ok">🤖 Checked</span>';
+    if (left && gr.status !== 'checking') s.innerHTML += ` <span class="pill warn">${left} to judge (counts as wrong)</span>`;
+    const rb = document.getElementById('regrade'); if (rb) rb.onclick = () => socket.emit('host:regrade');
+  }
+}
+
 // ---- reveal
 async function reveal(st) {
   const t = token; const qq = st.question;
+  if (qq.type === 'text') {
+    Sound.music(null);
+    const right = st.players.filter((p) => p.correct).length;
+    view(`<div class="screen">${qHead(st, false)}
+      <div class="judge-head"><div class="accepted big"><span class="kicker">The answer</span> ${acceptedHTML(st)}</div></div>
+      <div class="jgrid" id="jgrid"></div></div>`);
+    renderJudging(st);
+    Sound.play(right ? 'correct' : 'wrong');
+    if (right) confetti();
+    setTimeout(() => t === token && Sound.speak(qq.fact || ('The answer is ' + (st.accepted?.[0] || '').split('/')[0])), 900);
+    return;
+  }
   Sound.music(null);
   Sound.play('drumroll');
   view(`<div class="screen">${qHead(st, false)}<div class="feature" id="feat"><div class="emoji-big" style="animation:pulse .4s infinite">🥁</div></div>${optionsGrid(st)}</div>`);
   await sleep(1300); if (t !== token) return;
-  const right = qq.options[st.correct];
+  const rightIdx = Array.isArray(st.correct) ? st.correct : [st.correct];
+  const right = qq.options[rightIdx[0]];
   const feat = document.getElementById('feat');
   stage.querySelector(qq.type === 'pokemon' ? '.pgrid' : '.opts').outerHTML = optionsGrid(st, { reveal: true });
   Sound.play('correct');
@@ -332,13 +416,16 @@ async function reveal(st) {
     qq.reveal.forEach((_, i) => setTimeout(() => t === token && Sound.play('pop'), i * 180));
   } else if (qq.type === 'pokemon') {
     feat.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:1vh">${imgOrTile(right.img, right.label, 'hero-img')}<div class="hint">Now catch the mystery one!</div></div>`;
+  } else if (rightIdx.length > 1) {          // several right answers: show them all
+    feat.innerHTML = `<div class="multi-right">${rightIdx.map((i, k) => `<div class="mr pop" style="animation-delay:${k * 0.15}s;background:${OPT_COLORS[i]}">${qq.options[i].emoji ? `<span class="em">${esc(qq.options[i].emoji)}</span>` : ''}${esc(qq.options[i].label)}</div>`).join('')}</div>`;
+    Sound.play('pop');
   } else {
     feat.innerHTML = featureHTML(qq.type, right, 'reveal');
     playFeatureSound(qq.type, right);
   }
   if (qq.type === 'colour') confetti(right.colors.concat(right.colors));
-  else if (qq.type === 'food' || qq.type === 'career' || qq.type === 'photo') confetti();
-  setTimeout(() => t === token && Sound.speak(qq.fact || ('The answer is ' + right.label)), 900);
+  else if (qq.type === 'food' || qq.type === 'career' || qq.type === 'photo' || qq.type === 'choice') confetti();
+  setTimeout(() => t === token && Sound.speak(qq.fact || ('The answer is ' + rightIdx.map((i) => qq.options[i].label).join(' and '))), 900);
 }
 
 // ---- mini games
@@ -472,7 +559,7 @@ async function finale(st) {
   const order = [1, 0, 2].filter((i) => top[i]);
   const H = { 0: 34, 1: 24, 2: 17 }; const C = { 0: 'var(--yellow)', 1: '#C0C6D8', 2: '#D08A4E' };
   view(`<div class="screen">
-    <h1 class="h-title brand" style="text-align:center;font-size:8vh">🏆 <span class="z">Zayn's</span> <span class="k">Kahoot</span> Champions</h1>
+    <h1 class="h-title brand" style="text-align:center;font-size:8vh">🏆 ${brandHTML(title())} Champions</h1>
     <div class="podium">${order.map((i) => { const p = top[i]; return `
       <div class="pod" style="animation-delay:${(2 - i) * 1.1 + 0.4}s">
         ${avatarHTML(p.avatar, i === 0 ? 130 : 100)}<span class="nm">${esc(p.name)}</span><span class="sc">${p.score} pts</span>
@@ -483,6 +570,6 @@ async function finale(st) {
   for (const i of [2, 1, 0]) { await sleep(1100); if (t !== token) return; if (top[i]) Sound.play(i === 0 ? 'cheer' : 'pop'); }
   Sound.music('final');
   confetti(undefined, 200);
-  if (top[0]) Sound.speak(`Congratulations ${top[0].name}! Happy birthday Zayn!`);
+  if (top[0]) Sound.speak(`Congratulations ${top[0].name}!`);
   const again = setInterval(() => { if (t !== token) return clearInterval(again); confetti(undefined, 80); }, 4000);
 }

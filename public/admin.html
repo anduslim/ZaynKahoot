@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Zayn's Kahoot — Admin</title>
+<title>Quiz · Admin</title>
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
 <div id="login" class="login hidden">
   <form class="login-card" id="loginForm">
-    <h1 class="brand display"><span class="z">Zayn's</span> <span class="k">Kahoot</span></h1>
-    <p>Admin panel</p>
+    <h1 class="brand display"><span class="z">Quiz</span> <span class="k">Admin</span></h1>
+    <p>Edit the question sets</p>
     <input id="pw" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Admin password" autofocus>
     <div class="err" id="loginErr"></div>
     <button class="btn primary" type="submit">Open</button>
@@ -21,9 +21,10 @@
 
 <div id="app" class="hidden">
   <header class="top">
-    <div class="title"><span class="brand display"><span class="z">Zayn's</span> <span class="k">Kahoot</span></span><span class="tag">Admin</span></div>
+    <div class="title"><span class="brand display"><span class="z">Quiz</span> <span class="k">Admin</span></span></div>
     <div class="status" id="status"></div>
     <div class="actions">
+      <a class="btn ghost" href="/preview" target="_blank">Preview ↗</a>
       <a class="btn ghost" href="/host" target="_blank">Open host ↗</a>
       <button class="btn primary" id="save" disabled>Saved ✓</button>
     </div>

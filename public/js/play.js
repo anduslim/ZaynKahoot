@@ -1,4 +1,4 @@
-// Zayn's Kahoot — phone controller
+// Quiz — phone controller
 const socket = io();
 const app = document.getElementById('app');
 const params = new URLSearchParams(location.search);
@@ -13,17 +13,23 @@ let S = null, key = '';
 let steer = 0, btnSteer = 0, motionOK = false, sendTimer = null;
 let mgStatus = null;
 let catchGame = null;
+let gameTitle = '';
+let picks = [];            // multiple choice: the answers tapped so far
+fetch('/config.json').then((r) => r.json()).then((c) => {
+  gameTitle = c.title; document.title = c.title;
+  const h = document.querySelector('h1.brand'); if (h) h.innerHTML = brandHTML(c.title);
+}).catch(() => {});
 
 // ------------------------------------------------------------- join + avatar builder
 function joinScreen(err) {
   const pinNeeded = !params.get('pin');
   app.innerHTML = `
-    <h1 class="brand"><span class="z">Zayn's</span> <span class="k">Kahoot</span></h1>
+    <h1 class="brand">${gameTitle ? brandHTML(gameTitle) : '&nbsp;'}</h1>
     <div class="av-stage"><div class="av-preview" id="av">${avatarHTML(profile.avatar, 150)}</div>
       <button class="dice" id="dice" aria-label="Surprise me">🎲</button></div>
     <div class="av-name" id="avname"></div>
     ${pinNeeded ? `<label class="lbl">Game PIN<input class="txt" id="pin" inputmode="numeric" maxlength="4" placeholder="1234"></label>` : ''}
-    <label class="lbl">Your name<input class="txt" id="nm" maxlength="14" placeholder="Type your name" value="${esc(profile.name)}"></label>
+    <label class="lbl">Your name or group name<input class="txt" id="nm" maxlength="14" placeholder="Type a name" value="${esc(profile.name)}"></label>
     <div class="tabs" id="tabs">
       <button data-tab="animal">Animal</button><button data-tab="acc">Accessory</button><button data-tab="color">Colour</button>
     </div>
@@ -92,7 +98,7 @@ function doJoin(pin) {
 
 socket.on('connect', () => { if (joined || (playerId && profile.name)) doJoin(params.get('pin')); });
 socket.on('kicked', () => { joined = false; LS.set('id', null); playerId = null; app.innerHTML = `<div class="center"><div class="big">You've been removed from the game</div><button class="cta" onclick="location.reload()">Join again</button></div>`; });
-socket.on('state', (st) => { S = st; if (!joined) return; const k = st.phase + ':' + st.stepKind + ':' + (st.question?.index ?? '') + ':' + (st.mg?.type || ''); const changed = k !== key; key = k; render(st, changed); });
+socket.on('state', (st) => { S = st; if (st.title && st.title !== gameTitle) { gameTitle = st.title; document.title = st.title; } if (!joined) return; const k = st.phase + ':' + st.stepKind + ':' + (st.question?.index ?? '') + ':' + (st.mg?.type || ''); const changed = k !== key; key = k; render(st, changed); });
 socket.on('mgStatus', (s) => { mgStatus = s; updateRacePlace(); });
 
 // ------------------------------------------------------------- sensors
@@ -147,19 +153,36 @@ function render(st, changed) {
     return;
   }
   if (P === 'answering') {
-    if (st.answer != null) {
-      if (!changed && app.dataset.v === 'locked') return;
-      app.dataset.v = 'locked';
-      app.innerHTML = `${meBar(st)}<div class="center"><div style="font-size:90px;animation:spin 2s linear infinite">⭐</div><div class="big">Answer locked in!</div><div class="sub">Waiting for everyone…</div></div>`;
+    if (changed) picks = [];
+    if (st.answer != null && app.dataset.v !== 'editing') {
+      const k = 'locked:' + JSON.stringify(st.answer);
+      if (!changed && app.dataset.v === k) return;
+      app.dataset.v = k;
+      const typed = st.question.type === 'text';
+      app.innerHTML = `${meBar(st)}<div class="center"><div style="font-size:90px;animation:spin 2s linear infinite">⭐</div><div class="big">Answer locked in!</div>
+        ${typed ? `<div class="my-answer">“${esc(st.answer)}”</div>` : ''}<div class="sub">Waiting for everyone…</div>
+        ${typed ? '<button class="ghost" id="change">Change our answer</button>' : ''}</div>`;
+      const c = document.getElementById('change');
+      if (c) c.onclick = () => { app.dataset.v = 'editing'; answerPad(S, S.answer); };
       return;
     }
+    if (app.dataset.v === 'editing') return;
     if (!changed && app.dataset.v === 'pad') return;
     app.dataset.v = 'pad';
     return answerPad(st);
   }
+  if (P === 'grading') {
+    if (!changed) return;
+    app.dataset.v = '';
+    app.innerHTML = `${meBar(st)}<div class="center"><div style="font-size:90px;animation:floaty 2s infinite">🧑‍⚖️</div><div class="big">The judges are checking!</div>
+      ${typeof st.answer === 'string' ? `<div class="my-answer">“${esc(st.answer)}”</div>` : '<div class="sub">No answer this time</div>'}<div class="sub">Look at the big screen</div></div>`;
+    return;
+  }
+  if (P === 'reveal' && !changed && app.dataset.v !== 'reveal:' + st.wasCorrect) changed = true;   // the host changed our verdict
   app.dataset.v = '';
   if (P === 'reveal') {
     if (!changed) return;
+    app.dataset.v = 'reveal:' + st.wasCorrect;
     const ok = st.wasCorrect;
     Sound.play(ok ? 'correct' : 'wrong');
     navigator.vibrate?.(ok ? [60, 40, 60] : 200);
@@ -168,8 +191,8 @@ function render(st, changed) {
       <div class="tick">${ok ? '✓' : st.answer == null ? '⏰' : '✕'}</div>
       <div class="big">${ok ? 'Correct' : st.answer == null ? "Time's up!" : 'Not this time'}</div>
       ${ok && streak >= 2 ? `<div class="streak-pill">Answer streak 🔥 ${streak}</div>` : ''}
-      <div class="gain">${ok ? '+ ' + st.me.lastGain : 'Answer: ' + esc(st.question.options[st.correct]?.label || '')}</div></div>
-      <div class="rank-line">${st.me.rank <= 3 ? "You're on the podium! 🏆" : `You're ${ordinal(st.me.rank)} of ${st.me.of}`}</div></div>`;
+      <div class="gain">${ok ? '+ ' + st.me.lastGain : 'Answer: ' + esc(rightAnswer(st))}</div></div>
+      ${st.showRanks ? `<div class="rank-line">${st.me.rank <= 3 ? "You're on the podium! 🏆" : `You're ${ordinal(st.me.rank)} of ${st.me.of}`}</div>` : ''}</div>`;
     return;
   }
   if (P === 'mg_intro') { if (changed) mgIntro(st); return; }
@@ -193,30 +216,67 @@ function render(st, changed) {
   if (P === 'final') {
     if (!changed) return;
     const r = st.me.rank;
-    app.innerHTML = `<div class="center">${avatarHTML(st.me.avatar, 130)}<div class="place pop">${ordinal(r)}</div><div class="big">${r === 1 ? 'CHAMPION! 🏆' : r <= 3 ? 'On the podium! 🎉' : 'Thanks for playing!'}</div><div class="sub">${st.me.score} points · Happy birthday Zayn! 🎂</div></div>`;
+    app.innerHTML = `<div class="center">${avatarHTML(st.me.avatar, 130)}<div class="place pop">${ordinal(r)}</div><div class="big">${r === 1 ? 'CHAMPION! 🏆' : r <= 3 ? 'On the podium! 🎉' : 'Thanks for playing!'}</div><div class="sub">${st.me.score} points · ${esc(gameTitle)}</div></div>`;
     confetti();
   }
 }
 
-function answerPad(st) {
+function rightAnswer(st) {
   const q = st.question;
+  if (q.type === 'text') return (st.accepted || []).map((a) => a.split('/')[0].trim()).join(', ');
+  return (Array.isArray(st.correct) ? st.correct : [st.correct]).map((i) => q.options[i]?.label || '').join(', ');
+}
+
+// typed answer: a text box and a send button (the group can change it until time is up)
+function textPad(st, current = '') {
+  const q = st.question;
+  app.innerHTML = `<div class="qtxt">${esc(q.text)}</div>${q.hint ? `<div class="sub">${esc(q.hint)}</div>` : ''}
+    <textarea class="txt-answer" id="ta" maxlength="200" rows="4" placeholder="Type your answer here">${esc(current)}</textarea>
+    <button class="cta" id="send">Send answer ✍️</button>${meBar(st)}`;
+  const ta = document.getElementById('ta');
+  const send = () => {
+    const v = ta.value.trim();
+    if (!v) { ta.focus(); return; }
+    Sound.play('tap'); navigator.vibrate?.(30);
+    app.dataset.v = '';
+    socket.emit('answer', v);
+  };
+  document.getElementById('send').onclick = send;
+  ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+}
+
+function answerPad(st, current) {
+  const q = st.question;
+  if (q.type === 'text') return textPad(st, current);
+  const multi = q.type === 'choice' && q.pick > 1;
   let pad;
   if (q.type === 'pokemon') {
     pad = `<div class="pad pk">${q.options.map((o, i) => `<button data-i="${i}">${imgOrTile(o.img, o.label, '', '?')}<span>${esc(o.label)}</span></button>`).join('')}</div>`;
   } else {
-    pad = `<div class="pad">${q.options.map((o, i) => {
+    pad = `<div class="pad ${q.options.length > 4 ? 'six' : ''}">${q.options.map((o, i) => {
       let mid = '';
       if ((q.type === 'hero' || q.type === 'photo') && o.img) mid = imgOrTile(o.img, o.label, 'ph');
       else if (o.emoji) mid = `<span class="em">${esc(o.emoji)}</span>`;
       else if (o.colors) mid = `<span class="swatch" style="background:linear-gradient(90deg,${o.colors[0]} 50%,${o.colors[1]} 50%)"></span>`;
-      return `<button data-i="${i}" style="background:${OPT_COLORS[i]}"><span class="shape">${OPT_SHAPES[i]}</span>${mid}<span>${esc(o.label)}</span></button>`;
+      return `<button data-i="${i}" class="${o.label.length > 22 ? 'long' : ''}" style="background:${OPT_COLORS[i]}"><span class="shape">${OPT_SHAPES[i]}</span>${mid}<span>${esc(o.label)}</span></button>`;
     }).join('')}</div>`;
   }
-  app.innerHTML = `<div class="qtxt">${esc(q.text)}</div>${q.hint ? `<div class="sub">${esc(q.hint)}</div>` : ''}${pad}${meBar(st)}`;
+  app.innerHTML = `<div class="qtxt">${esc(q.text)}</div>${q.hint ? `<div class="sub">${esc(q.hint)}</div>` : ''}${pad}
+    ${multi ? `<button class="cta" id="send" disabled>Pick ${q.pick} answers</button>` : ''}${meBar(st)}`;
+  const send = document.getElementById('send');
   app.querySelectorAll('.pad button').forEach((b) => b.onclick = () => {
     Sound.play('tap'); navigator.vibrate?.(30);
-    socket.emit('answer', Number(b.dataset.i));
+    const i = Number(b.dataset.i);
+    if (!multi) return socket.emit('answer', i);
+    // multiple answers: tap to pick / unpick, then send
+    if (picks.includes(i)) picks = picks.filter((x) => x !== i);
+    else if (picks.length < q.pick) picks.push(i);
+    else { picks.shift(); picks.push(i); }
+    app.querySelectorAll('.pad button').forEach((x) => x.classList.toggle('picked', picks.includes(Number(x.dataset.i))));
+    send.disabled = picks.length !== q.pick;
+    send.textContent = picks.length === q.pick ? 'Send answers ✓' : `Pick ${q.pick - picks.length} more`;
   });
+  if (send) send.onclick = () => { if (picks.length === q.pick) { Sound.play('tap'); socket.emit('answer', picks.slice()); } };
 }
 
 // ------------------------------------------------------------- mini games: steering

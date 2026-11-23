@@ -1,4 +1,4 @@
-// Zayn's Kahoot — admin panel: edit, reorder and switch questions on/off, tune settings.
+// Quiz admin panel: edit, reorder and switch questions on/off, tune settings.
 (() => {
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -6,6 +6,8 @@
   const clone = (o) => JSON.parse(JSON.stringify(o));
 
   const TYPES = {
+    choice: { icon: '🔠', name: 'Multiple choice', note: 'Up to 6 answers. Mark one or more right answers; with several, groups pick some of them.' },
+    text: { icon: '✍️', name: 'Typed answer', note: 'Groups type their answer. The AI judge (or you, on the host screen) marks it right or wrong.' },
     hero: { icon: '🦸', name: 'Superhero photos', note: 'Photo answers with colourful rays. Its photos are also the runners in Hero Tower Escape.' },
     photo: { icon: '🖼️', name: 'Picture answers', note: 'Each answer is a picture, e.g. a photo of Zayn.' },
     pokemon: { icon: '⚡', name: 'Pokémon grid', note: 'Up to 24 picture tiles, a shadow mystery and decoys. Pairs with Catch the Mystery.' },
@@ -20,7 +22,8 @@
   const MG_ICON = { climb: '🏢', catch: '⭐', race: '🏎️' };
   const SOUNDS = ['', 'lion', 'elephant', 'monkey', 'toucan', 'dino', 'boing', 'whoosh', 'sparkle', 'cheer'];
   const ANIMS = { roar: 'Roar', stomp: 'Stomp', fly: 'Fly', swing: 'Swing' };
-  const maxOptions = (t) => (t === 'pokemon' ? 24 : 4);
+  const maxOptions = (t) => (t === 'pokemon' ? 24 : t === 'choice' ? 6 : t === 'text' ? 0 : 4);
+  const rightList = (q) => (Array.isArray(q.correct) ? q.correct : [q.correct]);
 
   let key = sessionStorage.getItem('zk_admin') || '';
   let data = null, saved = '', server = {}, images = [];
@@ -43,6 +46,7 @@
   }
   async function load() {
     const st = await api('GET', '/api/admin/content');
+    document.title = (st.content.title || 'Quiz') + ' · Admin';
     server = st; data = clone(st.content); saved = JSON.stringify(data);
     viewSet = Math.max(0, data.sets.findIndex((x) => x.id === data.activeSet));
     images = await api('GET', '/api/admin/images').catch(() => []);
@@ -107,9 +111,10 @@
   }
 
   const answerSummary = (q) => {
-    const o = q.options[q.correct];
-    if (!o) return '';
-    return `${o.emoji ? esc(o.emoji) + ' ' : ''}${esc(o.label)}`;
+    if (q.type === 'text') return esc((q.answers || []).map((a) => a.split('/')[0].trim()).join(', ').slice(0, 60)) || '<em>add accepted answers</em>';
+    const list = rightList(q).map((k) => q.options[k]).filter(Boolean);
+    const s = list.map((o) => `${o.emoji ? esc(o.emoji) + ' ' : ''}${esc(o.label)}`).join(', ');
+    return q.type === 'choice' && list.length > 1 ? `${s} <b>(pick ${q.pick || list.length})</b>` : s;
   };
 
   function renderQuestions() {
@@ -158,6 +163,9 @@
         <button class="set-tab add" data-setact="new" title="Start an empty question set">+ New set</button></div>
       <div class="set-tools">
         <label class="field set-name"><span class="lbl">Set name</span><input data-path="sets.${viewSet}.name" value="${esc(set.name)}" maxlength="40"></label>
+        <label class="field set-name"><span class="lbl">Title on screen</span><input data-path="sets.${viewSet}.title" value="${esc(set.title || '')}" maxlength="60" placeholder="${esc(data.title)}"></label>
+        <label class="field set-small"><span class="lbl">Points per right answer</span><input type="number" min="1" max="5000" data-path="sets.${viewSet}.points" data-kind="int" value="${set.points ?? 1000}"></label>
+        <label class="field set-small"><span class="lbl">Finale</span><select data-path="sets.${viewSet}.finale">${[['', 'As in Settings'], ['none', 'No finale'], ['race', 'Grand Prix'], ['climb', 'Hero Tower Escape']].map(([v, l]) => `<option value="${v}" ${(set.finale || '') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
         ${playing ? '<span class="pill ok">▶ This set is played in the game</span>' : '<button class="btn small primary" data-setact="play">▶ Play this set</button>'}
         <button class="btn small" data-setact="dup">⧉ Duplicate set</button>
         ${data.sets.length > 1 ? '<button class="btn small danger" data-setact="del">Delete set</button>' : ''}
@@ -166,7 +174,7 @@
     $$('#sets [data-set]').forEach((b) => (b.onclick = () => { viewSet = +b.dataset.set; open.clear(); renderQuestions(); }));
     $$('#sets [data-setact]').forEach((b) => (b.onclick = () => {
       const act = b.dataset.setact, rid = () => Math.random().toString(36).slice(2, 7);
-      if (act === 'new') { data.sets.push({ id: 'set-' + rid(), name: 'New set', questions: [] }); viewSet = data.sets.length - 1; }
+      if (act === 'new') { data.sets.push({ id: 'set-' + rid(), name: 'New set', points: 1, finale: 'none', questions: [] }); viewSet = data.sets.length - 1; }
       else if (act === 'play') { data.activeSet = set.id; toast(`“${set.name}” will be played. Save to apply`); }
       else if (act === 'dup') {
         const c = clone(set); c.id = 'set-' + rid(); c.name = set.name + ' (copy)';
@@ -204,9 +212,11 @@
         ${field('Mini game afterwards', `<select data-path="${p}.minigame">${mgOptions}</select>`)}
       </div>
       ${field(`Time to answer: <b data-show="${p}.timeLimit">${q.timeLimit}</b> seconds`, `<input type="range" min="5" max="120" step="5" data-path="${p}.timeLimit" data-kind="int" value="${q.timeLimit}">`)}
-      <div class="lbl answers-lbl">Answers <small>Tap the circle to mark the right one</small></div>
+      ${q.type === 'text' ? textExtras(q, i) : `
+      <div class="lbl answers-lbl">Answers <small>${q.type === 'choice' ? 'Tap the circles to mark the right answers (one or more)' : 'Tap the circle to mark the right one'}</small></div>
       <div class="opts ${q.type === 'pokemon' ? 'many' : ''}">${q.options.map((o, k) => optionHTML(q, i, o, k)).join('')}</div>
       ${q.options.length < maxOptions(q.type) ? `<button class="btn small" data-act="add-opt">+ Add answer</button>` : ''}
+      ${q.type === 'choice' && rightList(q).length > 1 ? field('Groups pick', `<select data-path="${p}.pick" data-kind="int">${rightList(q).map((_, k) => `<option value="${k + 1}" ${(q.pick || rightList(q).length) === k + 1 ? 'selected' : ''}>${k + 1} answer${k ? 's' : ''}${k + 1 === rightList(q).length ? ' (all the right ones)' : ''}</option>`).join('')}</select>`, 'Right when every answer they pick is a right one, e.g. “name any two”') : ''}`}
       ${q.type === 'pokemon' ? pokemonExtras(q, i) : ''}
       ${q.type === 'countries' ? countriesExtras(q, i) : ''}
     </div>`;
@@ -218,11 +228,11 @@
 
   function optionHTML(q, i, o, k) {
     const p = `${QP()}.${i}.options.${k}`;
-    const right = q.correct === k;
+    const right = rightList(q).includes(k);
     let extra = '';
     if (['hero', 'photo', 'pokemon'].includes(q.type)) extra += imgBtn(`${p}.img`, o.img);
     if (q.type === 'hero' || q.type === 'colour') extra += `<span class="colors"><input type="color" data-path="${p}.colors.0" value="${esc(o.colors?.[0] || '#2563eb')}"><input type="color" data-path="${p}.colors.1" value="${esc(o.colors?.[1] || '#facc15')}"></span>`;
-    if (['animal', 'food', 'career'].includes(q.type)) extra += `<input class="emoji" data-path="${p}.emoji" value="${esc(o.emoji || '')}" maxlength="16" placeholder="🙂" title="Emoji">`;
+    if (['animal', 'food', 'career', 'choice'].includes(q.type)) extra += `<input class="emoji" data-path="${p}.emoji" value="${esc(o.emoji || '')}" maxlength="16" placeholder="🙂" title="Emoji">`;
     if (q.type === 'animal') {
       extra += `<select data-path="${p}.sound" title="Sound">${SOUNDS.map((s) => `<option value="${s}" ${o.sound === s ? 'selected' : ''}>${s ? '🔊 ' + s : 'No sound'}</option>`).join('')}</select>`;
       extra += `<select data-path="${p}.anim" title="Animation">${Object.entries(ANIMS).map(([v, l]) => `<option value="${v}" ${o.anim === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
@@ -235,6 +245,17 @@
       ${extra}
       ${q.options.length > 2 ? `<button class="icon danger" data-act="del-opt" title="Remove answer">✕</button>` : ''}
     </div>`;
+  }
+
+  function textExtras(q, i) {
+    const p = `${QP()}.${i}`;
+    const n = (q.answers || []).length || 1;
+    return `<div class="extras">
+      ${field('Accepted answers', `<textarea data-path="${p}.answers" data-kind="lines" rows="4" placeholder="One per line. Use / for words that mean the same, e.g. Wise Men / Kings / Magi">${esc((q.answers || []).join('\n'))}</textarea>`, 'One item per line; “/” between words that mean the same thing. Short answers are also matched without the AI, with spelling slips allowed.')}
+      <div class="grid2">
+        ${field('Items needed', `<input type="number" min="1" max="${n}" data-path="${p}.needed" data-kind="int" value="${q.needed || 1}">`, 'How many different lines the answer must name, e.g. 2 for “name any two”')}
+        ${field('Notes for the AI judge (optional)', `<textarea data-path="${p}.notes" rows="2" maxlength="600" placeholder="e.g. Accept close spellings. “A stable” alone is wrong.">${esc(q.notes || '')}</textarea>`)}
+      </div></div>`;
   }
 
   function pokemonExtras(q, i) {
@@ -267,9 +288,11 @@
         if (el.dataset.kind === 'int') v = parseInt(v, 10) || 0;
         if (el.dataset.kind === 'num') v = v === '' ? '' : Number(v);
         if (el.dataset.kind === 'list') v = el.value.split(/[ ,]+/).filter(Boolean).map(Number);
+        if (el.dataset.kind === 'lines') v = el.value.split('\n').map((x) => x.trim()).filter(Boolean);
         setAt(el.dataset.path, v);
         $$(`[data-show="${el.dataset.path}"]`).forEach((s) => (s.textContent = v));
-        if (/\.(text|label|emoji|minigame|timeLimit)$/.test(el.dataset.path) && tab === 'questions') refreshHead(el);
+        if (/\.(text|label|emoji|minigame|timeLimit|answers|pick)$/.test(el.dataset.path) && tab === 'questions') refreshHead(el);
+        if (/^sets\.\d+\.finale$/.test(el.dataset.path)) renderOrder();
         if (/^sets\.\d+\.name$/.test(el.dataset.path)) { const t = $(`.set-tab[data-set="${viewSet}"] .nm`); if (t) t.textContent = v || 'Untitled set'; }
         markDirty();
       });
@@ -288,6 +311,8 @@
     const base = { id, enabled: true, type, text: '', fact: '', timeLimit: 20, correct: 0 };
     const four = (f) => [0, 1, 2, 3].map(f);
     switch (type) {
+      case 'choice': return { ...base, correct: [0], pick: 1, options: four(() => ({ label: '', emoji: '' })) };
+      case 'text': return { ...base, timeLimit: 60, correct: null, options: [], answers: [], needed: 1, notes: '' };
       case 'hero': return { ...base, options: four((k) => ({ label: '', img: '', colors: ['#7B2CBF', '#2BA84A'] })) };
       case 'photo': return { ...base, options: four(() => ({ label: '', img: '' })) };
       case 'pokemon': return { ...base, timeLimit: 30, options: four(() => ({ label: '', img: '' })), mysteryImg: '', shadowDecoys: [] };
@@ -301,9 +326,21 @@
   // switching type keeps the question and answer text, and fills in the new type's fields
   function changeType(q, type) {
     const t = template(type);
-    const keep = q.options.slice(0, maxOptions(type));
+    const was = q.type, right = rightList(q).filter((k) => k != null);
+    if (type === 'text') {                                  // the right answers become the accepted answers
+      if (!(q.answers || []).length) q.answers = right.map((k) => q.options[k]?.label).filter(Boolean);
+      Object.assign(q, { type, options: [], correct: null, needed: q.needed || 1, timeLimit: Math.max(q.timeLimit, 45) });
+      delete q.pick; delete q.mysteryImg; delete q.shadowDecoys; delete q.reveal;
+      if (q.minigame === 'catch') delete q.minigame;
+      return;
+    }
+    const keep = was === 'text' ? (q.answers || []).map((a) => ({ label: a.split('/')[0].trim() })) : q.options.slice(0, maxOptions(type));
     t.options = (keep.length >= 2 ? keep : t.options).map((o, k) => ({ ...(t.options[k] || t.options[0]), label: o.label, ...(o.img ? { img: o.img } : {}) }));
-    Object.assign(q, { type, options: t.options, correct: Math.min(q.correct, t.options.length - 1) });
+    const first = Math.min(right[0] ?? 0, t.options.length - 1);
+    Object.assign(q, { type, options: t.options, correct: first });
+    if (type === 'choice') { q.correct = (was === 'text' ? keep.map((_, k) => k).slice(0, 6) : right).filter((k) => k < t.options.length); if (!q.correct.length) q.correct = [0]; q.pick = q.pick && q.pick <= q.correct.length ? q.pick : q.correct.length; }
+    else delete q.pick;
+    if (was === 'text') { delete q.answers; delete q.needed; delete q.notes; }
     if (type !== 'pokemon') { delete q.mysteryImg; delete q.shadowDecoys; } else { q.mysteryImg ||= ''; q.shadowDecoys ||= []; }
     if (type !== 'countries') delete q.reveal; else q.reveal ||= [];
     if (q.minigame === 'catch' && type !== 'pokemon') delete q.minigame;
@@ -328,8 +365,23 @@
         else if (act === 'down') move(i, i + 1);
         else if (act === 'dup') { const c = clone(q); c.id = 'q' + Math.random().toString(36).slice(2, 8); Q().splice(i + 1, 0, c); open.add(c.id); }
         else if (act === 'del') { if (!confirm(`Delete “${q.text || 'this question'}”?`)) return; Q().splice(i, 1); }
-        else if (act === 'correct') q.correct = +b.closest('.opt').dataset.k;
-        else if (act === 'del-opt') { const k = +b.closest('.opt').dataset.k; q.options.splice(k, 1); if (q.correct >= k && q.correct > 0) q.correct--; }
+        else if (act === 'correct') {
+          const k = +b.closest('.opt').dataset.k;
+          if (q.type !== 'choice') q.correct = k;
+          else {                                              // multiple choice: tap to add / remove a right answer
+            const all = (q.pick || 1) === q.correct.length;
+            if (q.correct.includes(k)) { if (q.correct.length > 1) q.correct = q.correct.filter((x) => x !== k); }
+            else q.correct = [...q.correct, k].sort((a, b) => a - b);
+            q.pick = all ? q.correct.length : Math.min(q.pick || 1, q.correct.length);
+          }
+        }
+        else if (act === 'del-opt') {
+          const k = +b.closest('.opt').dataset.k; q.options.splice(k, 1);
+          if (q.type === 'choice') {
+            q.correct = q.correct.filter((x) => x !== k).map((x) => (x > k ? x - 1 : x)); if (!q.correct.length) q.correct = [0];
+            q.pick = Math.min(q.pick || 1, q.correct.length);
+          } else if (q.correct >= k && q.correct > 0) q.correct--;
+        }
         else if (act === 'add-opt') q.options.push({ ...template(q.type).options[0], label: '' });
         else if (act === 'decoy') { const s = new Set(q.shadowDecoys || []); s.has(b.dataset.img) ? s.delete(b.dataset.img) : s.add(b.dataset.img); q.shadowDecoys = [...s]; }
         else if (act === 'add-flag') (q.reveal ||= []).push(['🏳️', '']);
@@ -393,7 +445,8 @@
       items.push(`<li><b>Q${++n}</b> ${esc(q.text || 'New question')}</li>`);
       if (q.minigame) items.push(`<li class="mg">${MG_ICON[q.minigame]} ${MINIGAMES[q.minigame]}</li>`);
     });
-    if (data.finale !== 'none') items.push(`<li class="mg finale">🏁 Finale: ${MINIGAMES[data.finale]}</li>`);
+    const fin = playing.finale || data.finale;
+    if (fin !== 'none') items.push(`<li class="mg finale">🏁 Finale: ${MINIGAMES[fin]}</li>`);
     items.push('<li class="mg">🏆 Podium</li>');
     $('#order').innerHTML = items.join('');
   }
@@ -437,7 +490,8 @@
       </div>
       <div class="card">
         <h3>Points</h3>
-        <p class="muted">Questions give 500–1000 points (faster = more). Questions followed by a mini game give a flat 1000 for a right answer.</p>
+        <p class="muted">A right answer gives the question set's points (set them next to the set name on the Questions page). Answering faster gives no extra points.</p>
+        <label class="check"><input type="checkbox" data-path="showRankings" ${data.showRankings !== false ? 'checked' : ''}> Show the rankings after each question <small>(the host can also switch this live with the <b>Rankings</b> button or the R key)</small></label>
         <div class="lbl">Mini game bonus by finishing place</div>
         <div class="bonus">${bonus.map((b, k) => `<label><span>${ordinal(k + 1)}</span><input type="number" min="0" max="5000" data-path="minigameBonus.${k}" data-kind="int" value="${b}"></label>`).join('')}</div>
         <div class="grid3">
@@ -454,7 +508,23 @@
           <li>Questions are saved on the server ${server.savedToFile ? '(edited copy in use)' : '(using the original content.js)'}</li>
         </ul>
         <button class="btn danger" id="restore">Restore the original question sets</button>
+      </div>
+      <div class="card">
+        <h3>AI judge for typed answers</h3>
+        ${server.ai?.enabled ? `<p>Using <b>${esc(server.ai.model)}</b> at <code>${esc(server.ai.baseUrl)}</code>.</p>
+          <button class="btn" id="aiTest">Test the AI judge</button> <span id="aiResult" class="muted"></span>`
+        : `<p class="muted">Off. Typed answers are matched by keywords and the host taps each one right or wrong. To turn it on, start the server with <code>LLM_BASE_URL</code> (an OpenAI-compatible address such as <code>http://localhost:11434/v1</code> for Ollama) and <code>LLM_MODEL</code>, and optionally <code>LLM_API_KEY</code>.</p>`}
+      </div>
+      <div class="card">
+        <h3>Preview for co-organisers</h3>
+        <p>Share <a href="/preview" target="_blank"><b>/preview</b></a>: it lists every question set with the answers, and lets people try the questions, without joining the game. ${server.previewKey ? 'It needs the key in <code>PREVIEW_KEY</code>: share <code>/preview?key=…</code>.' : 'Anyone with the link can open it; set <code>PREVIEW_KEY</code> to lock it.'}</p>
       </div>`;
+    const at = $('#aiTest');
+    if (at) at.onclick = async () => {
+      $('#aiResult').textContent = 'Asking the model…';
+      try { const r = await api('POST', '/api/admin/ai-test'); $('#aiResult').textContent = r.ok ? `Works (${(r.ms / 1000).toFixed(1)}s)` : `Problem: ${r.error || 'the model gave odd answers ' + JSON.stringify(r.results)}`; }
+      catch (e) { $('#aiResult').textContent = e.message; }
+    };
     bindInputs($('#settingsTab'));
     $$('#settingsTab input[name="mode"]').forEach((r) => (r.onchange = () => { data.mode = r.value; renderSettings(); markDirty(); }));
     $$('#settingsTab .grow').forEach((row) => row.addEventListener('click', (e) => {
@@ -466,7 +536,7 @@
     }));
     $$('#settingsTab [data-pick]').forEach((b) => (b.onclick = () => openPicker(b.dataset.pick)));
     $('#restore').onclick = async () => {
-      if (!confirm('Throw away all edits and go back to the original question sets (Zayn’s birthday + Christmas)?')) return;
+      if (!confirm('Throw away all edits and go back to the original question sets?')) return;
       try { const st = await api('POST', '/api/admin/restore'); server = st; data = clone(st.content); saved = JSON.stringify(data); open.clear(); tab = 'questions'; viewSet = Math.max(0, data.sets.findIndex((x) => x.id === data.activeSet)); render(); toast(st.pending ? 'Restored. Starts with the next game' : 'Original questions restored'); }
       catch (e) { if (e.message !== 'locked') toast(e.message, true); }
     };
