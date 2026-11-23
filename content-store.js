@@ -75,7 +75,7 @@ function cleanQuestion(q, i) {
       .map((a) => str(a, 240)).filter(Boolean).slice(0, 20);
     if (!out.answers.length) throw new Error(`Question ${i + 1} (typed answer) needs at least one accepted answer`);
     out.needed = int(q.needed, 1, out.answers.length, 1);
-    out.notes = str(q.notes, 600);
+    out.notes = str(q.notes, 1500);                                  // marking guide for the AI judge
     out.correct = null;
     if (!out.notes) delete out.notes;
   }
@@ -123,6 +123,7 @@ function cleanSet(set, k, ids) {
     points: int(set.points, 1, 5000, 1000),                           // per right answer (no speed bonus)
     finale: FINALES.includes(set.finale) ? set.finale : '',            // blank = the Settings finale
     quizOnly: set.quizOnly === true,                                   // questions only: no mini games, no finale
+    timer: typeof set.timer === 'boolean' ? set.timer : set.quizOnly !== true,   // countdown per question; off = open until the host moves on
     questions,
   };
   if (!out.title) delete out.title;
@@ -233,6 +234,7 @@ const live = (c) => {
     finale: set.quizOnly ? 'none' : set.finale || c.finale,
     mode: set.quizOnly ? 'quiz' : c.mode,
     quizOnly: !!set.quizOnly,
+    timer: set.timer !== false,
     questions: set.questions.filter((q) => q.enabled).map((q) => (set.quizOnly && q.minigame ? (({ minigame, ...rest }) => rest)(q) : q)),
   };
 };

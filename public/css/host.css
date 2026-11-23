@@ -242,3 +242,4 @@ body { overflow: hidden; }
 .jcard.no { border-color: #FF9AA2; background: #6B1F2A; }
 .jcard.maybe .vd { color: var(--yellow); }
 .judge-tip { text-align: center; }
+.jcard .why { font-size: 2vh; line-height: 1.3; color: #fff; opacity: .85; font-style: italic; }
