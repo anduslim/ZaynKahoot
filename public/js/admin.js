@@ -555,8 +555,13 @@
     };
     $('#aiTest').onclick = async () => {
       aiOut('Asking the model… (a big model can take a while)');
-      try { const r = await api('POST', '/api/admin/ai-test'); r.ok ? aiOut(`✓ Works: it judged two test answers correctly in ${(r.ms / 1000).toFixed(1)}s`, false) : aiOut(r.error ? `✕ ${r.error}` : `✕ It answered, but judged the test wrongly: ${JSON.stringify(r.results)}`, true); }
-      catch (e) { aiOut(e.message, true); }
+      try {
+        const r = await api('POST', '/api/admin/ai-test');
+        if (r.error || !r.checks) return aiOut(`✕ ${r.error || 'The test failed'}`, true);
+        aiOut(r.ok ? `✓ Test passed in ${(r.ms / 1000).toFixed(1)}s` : '✕ The AI answered, but judged the sample wrongly', !r.ok);
+        $('#aiResult').insertAdjacentHTML('beforeend', `<div class="ai-checks">Sample question: “${esc(r.question)}”${r.checks.map((c) => `
+          <div class="${c.correct === c.expect ? 'ok' : 'bad'}">${c.correct === c.expect ? '✓' : '✕'} “${esc(c.text)}” → ${c.correct === true ? 'point' : c.correct === false ? 'no point' : 'no verdict'}${c.reason ? `: ${esc(c.reason)}` : ''}</div>`).join('')}</div>`);
+      } catch (e) { aiOut(e.message, true); }
     };
     $('#aiList').onclick = async (e) => {
       e.preventDefault();
