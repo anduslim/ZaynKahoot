@@ -173,21 +173,25 @@
     }
     function next() { if (i < qs.length - 1) { i++; startQuestion(); } else { phase = 'final'; clearInterval(timer); draw(); } }
 
+    const scene = (qq, mood) => (qq.scene && window.Scenes ? Scenes.html(qq.scene, mood) : '');
     function stage() {
       const qq = q();
       if (phase === 'final') return `<div class="sfinal"><div class="big">🏆</div><h2>${esc(set.title)}</h2><p>${right} of ${qs.length} right · <b>${score} point${score === 1 ? '' : 's'}</b></p></div>`;
       const head = `<div class="shead">${set.timer && phase === 'question' ? `<b class="stimer" id="stime">${qq.timeLimit}</b>` : ''}<div><div class="kick">Question ${i + 1} of ${qs.length}${qq.pick > 1 ? ` · <span>Pick ${qq.pick}</span>` : ''}${qq.type === 'text' ? ' · <span>Type your answer</span>' : ''}</div><h2>${esc(qq.text)}</h2></div></div>`;
       if (qq.type === 'text') {
         const acc = phase === 'reveal' || phase === 'judging' ? `<div class="sacc"><span class="lbl">The answer</span>${(qq.answers || []).map((a) => `<span class="acc">${esc(a.split('/').slice(0, 3).join(' / '))}</span>`).join('')}</div>` : '';
-        const card = phase === 'question' ? `<div class="swrite">✍️<div class="hint">Type your answer on your phone</div></div>`
+        const card = phase === 'question' ? (scene(qq, 'ask') ? `<div class="sscene">${scene(qq, 'ask')}</div>` : `<div class="swrite">✍️<div class="hint">Type your answer on your phone</div></div>`)
           : `<button class="scard ${phase === 'judging' ? '' : correctNow() ? 'yes' : 'no'}" id="flip" title="Click to mark right or wrong, like the host">
               <div class="vd">${phase === 'judging' ? '…' : correctNow() ? '✓' : '✕'}</div><div class="ans">${answer ? esc(answer) : '<em>No answer</em>'}</div>
               <div class="by">${phase === 'judging' ? 'The judges are checking…' : esc(verdictNote || (answer ? '' : 'no answer'))}${phase === 'reveal' && answer ? ' · click to flip' : ''}</div></button>`;
-        return head + acc + `<div class="sfeat">${card}</div>${phase === 'reveal' && qq.fact ? `<div class="sfact">💡 ${esc(qq.fact)}</div>` : ''}`;
+        const show = phase === 'reveal' && scene(qq, 'reveal') ? `<div class="sscene">${scene(qq, 'reveal')}</div>` : '';
+        return head + acc + show + `<div class="sfeat">${card}</div>${phase === 'reveal' && qq.fact ? `<div class="sfact">💡 ${esc(qq.fact)}</div>` : ''}`;
       }
       const reveal = phase === 'reveal';
       const mine = Array.isArray(answer) ? answer : answer == null ? [] : [answer];
-      return head + `<div class="sfeat">${reveal ? `<div class="sres ${correctNow() ? 'yes' : 'no'}">${correctNow() ? '✓ Correct!' : answer == null ? '⏰ No answer' : '✕ Not this time'}</div>` : `<div class="sthink">${qq.pick > 1 ? '✌️' : '🤔'}</div>`}</div>
+      const res = `<div class="sres ${correctNow() ? 'yes' : 'no'}">${correctNow() ? '✓ Correct!' : answer == null ? '⏰ No answer' : '✕ Not this time'}</div>`;
+      return head + (scene(qq, reveal ? 'reveal' : 'ask') ? `<div class="sscene">${scene(qq, reveal ? 'reveal' : 'ask')}</div>${reveal ? res : ''}`
+        : `<div class="sfeat">${reveal ? res : `<div class="sthink">${qq.pick > 1 ? '✌️' : '🤔'}</div>`}</div>`) + `
         <div class="sopts ${qq.options.length > 4 ? 'six' : ''}">${qq.options.map((o, k) => optHTML(o, k, reveal ? (isRight(k) ? 'right' : 'dim') + (mine.includes(k) ? ' mine' : '') : '')).join('')}</div>
         ${reveal && qq.fact ? `<div class="sfact">💡 ${esc(qq.fact)}</div>` : ''}`;
     }
@@ -205,10 +209,13 @@
         ${multi ? `<button class="btn big" id="psend" ${picks.length === qq.pick ? '' : 'disabled'}>${picks.length === qq.pick ? 'Send answers ✓' : `Pick ${qq.pick - picks.length} more`}</button>` : ''}${bar}`;
     }
     function draw() {
+      const oldScene = box.querySelector('.scene');
       const nextLabel = phase === 'final' ? '' : phase === 'question' ? (answer != null ? 'Reveal ▸' : 'End question ▸') : phase === 'judging' ? '' : i < qs.length - 1 ? 'Next question ▸' : 'Final score ▸';
       box.innerHTML = `<div class="sim-top"><b>🎮 Simulation · ${esc(set.name)}</b><span class="muted small">Nothing here touches the live game</span>
           <span class="grow"></span>${nextLabel ? `<button class="btn" id="snext">${nextLabel}</button>` : ''}${phase === 'final' ? '<button class="btn" id="sagain">Play again</button>' : ''}<button class="btn ghost" id="sclose">✕ Close</button></div>
         <div class="sim-body"><section class="sstage"><div class="slabel">Big screen</div>${stage()}</section><section class="sphone"><div class="slabel">Phone</div><div class="pscreen">${phone()}</div></section></div>`;
+      const newScene = box.querySelector('.scene');
+      if (oldScene && newScene && oldScene.dataset.k === newScene.dataset.k) newScene.replaceWith(oldScene);
       box.querySelector('#sclose').onclick = close;
       const n = box.querySelector('#snext'); if (n) n.onclick = () => (phase === 'question' ? finish() : next());
       const ag = box.querySelector('#sagain'); if (ag) ag.onclick = () => { i = 0; score = 0; right = 0; startQuestion(); };

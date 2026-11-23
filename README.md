@@ -31,6 +31,9 @@ The AI gets the question, the accepted answers and the question's **marking guid
 
 After time is up, the projector shows every group's answer with a ✓ or ✕. **Click an answer to flip it**, then press Space to reveal. If the model can't be reached, the screen says so (with *Try again*) and unmatched answers wait for the host's tap. Clicking during the reveal corrects the score too. **Admin → Settings → Test the AI judge** checks the connection.
 
+### Question animations
+Each *Multiple choice* or *Typed answer* question can have an **animation on the big screen** (Admin → the question → *Animation on the big screen*). On the host it is a 3D scene (three.js, with glowing candles and stars); the preview simulator shows a lighter drawn version. It plays while groups answer without giving the answer away, then shows the answer at the reveal. The Advent set has one per question: the wreath, the rose candle, Gaudete, Hope/Peace/Joy/Love, the purple vestment, a heart getting ready, Jesus' two comings, the Visitation, Bethlehem, the manger, the Wise Men and their gifts. Scenes live in `public/js/scenes3d.js` (3D) and `public/js/scenes.js` (drawn).
+
 ### HTTPS (needed for tilt controls on iPhone)
 iOS only gives websites the motion sensors over HTTPS. Pick one:
 
