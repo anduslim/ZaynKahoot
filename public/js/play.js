@@ -29,7 +29,7 @@ function joinScreen(err) {
       <button class="dice" id="dice" aria-label="Surprise me">🎲</button></div>
     <div class="av-name" id="avname"></div>
     ${pinNeeded ? `<label class="lbl">Game PIN<input class="txt" id="pin" inputmode="numeric" maxlength="4" placeholder="1234"></label>` : ''}
-    <label class="lbl">Your name or group name<input class="txt" id="nm" maxlength="14" placeholder="Type a name" value="${esc(profile.name)}"></label>
+    <label class="lbl">Your group name<input class="txt" id="nm" maxlength="20" placeholder="e.g. The Shepherds" value="${esc(profile.name)}"></label>
     <div class="tabs" id="tabs">
       <button data-tab="animal">Animal</button><button data-tab="acc">Accessory</button><button data-tab="color">Colour</button>
     </div>
@@ -76,7 +76,7 @@ function joinScreen(err) {
 
   document.getElementById('ready').onclick = async () => {
     const name = document.getElementById('nm').value.trim();
-    if (!name) return joinScreen('Please type your name');
+    if (!name) return joinScreen("Please type your group name");
     profile.name = name;
     LS.set('profile', profile);
     Sound.init(); Sound.play('join');
@@ -136,8 +136,8 @@ function meBar(st) {
   return `<div class="me-bar">${avatarHTML(st.me.avatar, 38)}<span class="nm">${esc(st.me.name)}</span><span class="sc">${st.me.score} pts</span></div>`;
 }
 function waitScreen(msg = "You're in!", sub = 'Look at the big screen') {
-  app.innerHTML = `<div class="center">${avatarHTML(profile.avatar, 140)}<div class="big">${esc(msg)}</div><div class="sub">${esc(sub)}</div></div>
-    ${S?.phase === 'lobby' ? '<button class="ghost" id="edit">Change my avatar</button>' : ''}`;
+  app.innerHTML = `<div class="center">${avatarHTML(profile.avatar, 140)}<div class="big">${esc(msg)}</div><div class="group-name">${esc(profile.name || '')}</div><div class="sub">${esc(sub)}</div></div>
+    ${S?.phase === 'lobby' ? '<button class="ghost" id="edit">Change group name or avatar</button>' : ''}`;
   const e = document.getElementById('edit'); if (e) e.onclick = () => { joined = false; joinScreen(); };
 }
 
