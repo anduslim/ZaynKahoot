@@ -1,15 +1,24 @@
 // Shared helpers for host + phone
-const OPT_COLORS = ['var(--o0)', 'var(--o1)', 'var(--o2)', 'var(--o3)'];
+const OPT_COLORS = ['var(--o0)', 'var(--o1)', 'var(--o2)', 'var(--o3)', 'var(--o4)', 'var(--o5)'];
 const OPT_SHAPES = [
   '<svg viewBox="0 0 34 34"><path d="M17 3 L31 30 L3 30 Z" fill="#fff"/></svg>',
   '<svg viewBox="0 0 34 34"><path d="M17 2 L32 17 L17 32 L2 17 Z" fill="#fff"/></svg>',
   '<svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="#fff"/></svg>',
   '<svg viewBox="0 0 34 34"><rect x="4" y="4" width="26" height="26" rx="3" fill="#fff"/></svg>',
+  '<svg viewBox="0 0 34 34"><path d="M17 2 L21.4 12.2 L32 13.2 L24 20.4 L26.4 31 L17 25.4 L7.6 31 L10 20.4 L2 13.2 L12.6 12.2 Z" fill="#fff"/></svg>',
+  '<svg viewBox="0 0 34 34"><path d="M10 3 H24 L32 17 L24 31 H10 L2 17 Z" fill="#fff"/></svg>',
 ];
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // avatarHTML() lives in avatars.js
+
+// Game title as a two-colour logo: the last word green, the rest red ("Zayn's Kahoot", "Advent Trivia")
+function brandHTML(title) {
+  const words = String(title || 'Quiz').trim().split(/\s+/);
+  const last = words.pop();
+  return words.length ? `<span class="z">${esc(words.join(' '))}</span> <span class="k">${esc(last)}</span>` : `<span class="k">${esc(last)}</span>`;
+}
 
 function confetti(colors = ['#E5383B', '#2BA84A', '#FFC93C', '#3A86FF', '#EC4899'], n = 120) {
   const box = document.createElement('div');

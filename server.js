@@ -1,4 +1,4 @@
-// Zayn's Kahoot — game server
+// Party quiz game server (question sets, phones as controllers)
 const express = require('express');
 const http = require('http');
 const path = require('path');
@@ -7,6 +7,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { Server } = require('socket.io');
 const store = require('./content-store');
+const judge = require('./judge');
 
 // Questions + settings: the admin panel's saved copy if there is one, otherwise content.js.
 // `edited` is the full list the admin edits (switched-off questions included); `content` is
@@ -14,10 +15,13 @@ const store = require('./content-store');
 let { content: edited, fromFile } = store.load();
 let content = store.live(edited);
 let pending = null;
+let showRanks = true;                 // scoreboard after each question; the host can switch it live
 
 // Admin password: ADMIN_PASSWORD, or a random code printed below when the server starts.
 const ADMIN_KEY = process.env.ADMIN_PASSWORD || String(crypto.randomInt(100000, 1000000));
 
+// Optional key for the /preview page (question browser for co-organisers). Without it the page is open.
+const PREVIEW_KEY = process.env.PREVIEW_KEY || '';
 const PORT = process.env.PORT || 3000;
 const WIFI = {
   ssid: process.env.WIFI_SSID || '',
@@ -39,12 +43,50 @@ app.get('/', (req, res) => res.redirect('/play'));
 app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public/host.html')));
 app.get('/play', (req, res) => res.sendFile(path.join(__dirname, 'public/play.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
+app.get('/preview', (req, res) => res.sendFile(path.join(__dirname, 'public/preview.html')));
+
+// ---------------------------------------------------------------- preview API (read-only question browser)
+const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+const previewOnly = (req, res, next) => {
+  if (!PREVIEW_KEY) return next();
+  const k = String(req.get('x-preview-key') || req.query.key || '');
+  if (!safeEq(k, PREVIEW_KEY) && !safeEq(k, ADMIN_KEY)) return res.status(401).json({ error: 'This preview needs the preview key' });
+  next();
+};
+app.get('/api/preview', previewOnly, (req, res) => {
+  const c = pending || edited;
+  res.json({
+    title: c.title, activeSet: c.activeSet, mode: c.mode, ai: judge.info().enabled,
+    sets: c.sets.map((x) => ({ id: x.id, name: x.name, title: x.title || c.title, points: x.points, questions: x.questions })),
+  });
+});
+// try a typed answer against the judge (local match + AI), so organisers can test the grading
+const tries = new Map();
+app.post('/api/preview/grade', previewOnly, express.json({ limit: '8kb' }), async (req, res) => {
+  const ip = req.ip || 'x', now = Date.now();
+  const t = (tries.get(ip) || []).filter((x) => now - x < 60000);
+  if (t.length >= 20) return res.status(429).json({ error: 'Too many tries. Wait a minute' });
+  t.push(now); tries.set(ip, t);
+  const c = pending || edited;
+  const q = c.sets.flatMap((x) => x.questions).find((x) => x.id === req.body?.qid);
+  const text = String(req.body?.text || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+  if (!q || q.type !== 'text') return res.status(400).json({ error: 'Not a typed-answer question' });
+  if (!text) return res.status(400).json({ error: 'Type an answer first' });
+  const match = judge.localMatch(q, text);
+  if (!judge.enabled()) return res.json({ correct: match, by: 'match', note: match ? '' : 'No AI model set: the host would judge this one' });
+  try {
+    const r = (await judge.judge(q, [{ id: 'a', text }], c.title)).a;
+    if (!r) throw new Error('The AI skipped this answer');
+    res.json({ correct: r.correct, by: 'ai', reason: r.reason });
+  } catch (e) {
+    res.json({ correct: match, by: 'match', note: `AI failed: ${e.message}` });
+  }
+});
 
 // ---------------------------------------------------------------- admin API
 const adminOnly = (req, res, next) => {
   const k = String(req.get('x-admin-key') || '');
-  const ok = k.length === ADMIN_KEY.length && crypto.timingSafeEqual(Buffer.from(k), Buffer.from(ADMIN_KEY));
-  if (!ok) return res.status(401).json({ error: 'Wrong admin password' });
+  if (!safeEq(k, ADMIN_KEY)) return res.status(401).json({ error: 'Wrong admin password' });
   next();
 };
 const adminState = () => ({
@@ -56,6 +98,11 @@ const adminState = () => ({
   wifi: !!WIFI.ssid,
   publicUrl: process.env.PUBLIC_URL || '',
   passwordFromEnv: !!process.env.ADMIN_PASSWORD,
+  ai: judge.info(),
+  previewKey: !!PREVIEW_KEY,
+});
+app.post('/api/admin/ai-test', adminOnly, async (req, res) => {
+  try { res.json(await judge.test()); } catch (e) { res.json({ ok: false, error: e.message }); }
 });
 app.get('/api/admin/content', adminOnly, (req, res) => res.json(adminState()));
 app.get('/api/admin/defaults', adminOnly, (req, res) => res.json(store.defaults()));
@@ -122,6 +169,7 @@ let steps = [];
 function applyContent(c) {
   edited = c; pending = null;
   content = store.live(c);
+  showRanks = content.showRankings !== false;
   steps = content.mode === 'games'
     ? [...content.gamesOnly.filter((g) => g.on).map((g) => ({ kind: 'game', type: g.type })), { kind: 'final' }]   // mini games only
     : [
@@ -153,7 +201,7 @@ function resetGame(keepPlayers) {
   if (pending) applyContent(pending);
   const old = game.players;
   newGame();
-  if (keepPlayers) for (const [id, p] of old) { p.score = 0; p.lastGain = 0; p.answer = null; p.streak = 0; game.players.set(id, p); }
+  if (keepPlayers) for (const [id, p] of old) { p.score = 0; p.lastGain = 0; p.answer = null; p.streak = 0; clearVerdict(p); game.players.set(id, p); }
   else for (const p of old.values()) if (p.socketId) io.to(p.socketId).emit('kicked');
   broadcast();
 }
@@ -171,6 +219,7 @@ function newGame() {
     answerOpenedAt: 0,
     mg: null,
     lastRanks: {},
+    grading: null,          // typed answers: { status: 'off' | 'checking' | 'done' | 'error', error }
   };
 }
 newGame();
@@ -186,9 +235,21 @@ const currentQ = () => {
 const activePlayers = () => [...game.players.values()].filter((p) => !p.kicked);
 const ranked = () => activePlayers().sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
 
+// p.answer: an option index, a list of indexes (choice), or the typed text (text)
+const picked = (p, i) => (Array.isArray(p.answer) ? p.answer.includes(i) : p.answer === i);
+const hasText = (p) => typeof p.answer === 'string' && p.answer.trim() !== '';
+function answerCorrect(q, p) {
+  if (!q || p.answer == null) return false;
+  if (q.type === 'text') return p.verdict === true;
+  if (q.type === 'choice') return Array.isArray(p.answer) && p.answer.length === q.pick && p.answer.every((i) => q.correct.includes(i));
+  return p.answer === q.correct;
+}
+const clearVerdict = (p) => { p.verdict = null; p.verdictBy = null; p.verdictReason = ''; };
+const SHOW_ANSWER = ['reveal', 'mg_intro', 'mg_play', 'mg_results', 'scoreboard'];
+
 function publicQuestion(q) {
   if (!q) return null;
-  const { correct, ...rest } = q;
+  const { correct, answers, notes, ...rest } = q;
   const extra = q.type === 'height' ? { heightPhoto: content.heightPhoto } : {};
   return { ...rest, ...extra, index: content.questions.indexOf(q), total: content.questions.length };
 }
@@ -200,9 +261,14 @@ function mgType() {
 
 function hostView() {
   const q = currentQ();
-  const showAnswer = ['reveal', 'mg_intro', 'mg_play', 'mg_results', 'scoreboard'].includes(game.phase);
-  const counts = q ? q.options.map((_, i) => activePlayers().filter((p) => p.answer === i).length) : [];
+  const showAnswer = SHOW_ANSWER.includes(game.phase);
+  const counts = q ? q.options.map((_, i) => activePlayers().filter((p) => picked(p, i)).length) : [];
   return {
+    title: content.title,
+    points: content.points,
+    showRanks,
+    grading: game.grading,
+    accepted: q?.type === 'text' && (showAnswer || game.phase === 'grading') ? q.answers : null,
     pin: game.pin,
     phase: game.phase,
     step: game.step,
@@ -218,6 +284,8 @@ function hostView() {
     players: ranked().map((p) => ({
       id: p.id, name: p.name, avatar: p.avatar, score: p.score, lastGain: p.lastGain,
       answer: p.answer, connected: p.connected, bot: p.bot, prevRank: game.lastRanks[p.id] ?? null, hero: p.hero ?? 0, streak: p.streak || 0,
+      verdict: p.verdict ?? null, verdictBy: p.verdictBy || null, verdictReason: p.verdictReason || '',
+      correct: q && showAnswer ? answerCorrect(q, p) : null,
     })),
     isLast: game.step === steps.length - 1,
     heroImgs: heroImgs(),
@@ -229,15 +297,18 @@ function hostView() {
 function playerView(p) {
   const q = currentQ();
   const r = ranked();
-  const showAnswer = ['reveal', 'mg_intro', 'mg_play', 'mg_results', 'scoreboard'].includes(game.phase);
+  const showAnswer = SHOW_ANSWER.includes(game.phase);
   return {
+    title: content.title,
+    showRanks,
+    accepted: q?.type === 'text' && showAnswer ? q.answers : null,
     phase: game.phase,
     stepKind: currentStep()?.kind || null,
     me: { id: p.id, name: p.name, avatar: p.avatar, score: p.score, lastGain: p.lastGain, rank: r.indexOf(p) + 1, of: r.length, streak: p.streak || 0 },
     question: publicQuestion(q),
     answer: p.answer,
     correct: q && showAnswer ? q.correct : null,
-    wasCorrect: q && showAnswer ? p.answer === q.correct : null,
+    wasCorrect: q && showAnswer ? answerCorrect(q, p) : null,
     paused: game.paused,
     mysteryImg: mysteryImg(),
     mg: game.mg && { type: game.mg.type, hero: p.hero, endsAt: game.mg.endsAt, myBonus: game.mg.bonus?.[p.id] ?? null, myPlace: game.mg.results ? game.mg.results.indexOf(p.id) + 1 : null },
@@ -256,13 +327,67 @@ function goto(phase) {
   game.phase = phase;
   if (phase === 'answering') {
     const q = currentQ();
-    for (const p of game.players.values()) { p.answer = null; p.answerAt = null; }
+    for (const p of game.players.values()) { p.answer = null; p.answerAt = null; clearVerdict(p); }
+    game.grading = null;
     game.answerOpenedAt = Date.now();
     game.deadline = Date.now() + q.timeLimit * 1000;
     game.paused = false;
     scheduleBotAnswers(q);
   }
+  if (phase === 'grading') startGrading();
   if (phase === 'reveal') scoreQuestion();
+  broadcast();
+}
+
+// answering is over: typed answers go to the judges first, everything else straight to the reveal
+const endAnswering = () => goto(currentQ()?.type === 'text' ? 'grading' : 'reveal');
+
+// ---- typed answers: local word match now, then the AI model; the host can override any verdict
+function startGrading() {
+  const q = currentQ();
+  for (const p of activePlayers()) {
+    clearVerdict(p);
+    if (!hasText(p)) { p.verdict = false; p.verdictBy = 'blank'; continue; }
+    if (judge.localMatch(q, p.answer)) { p.verdict = true; p.verdictBy = 'match'; }
+  }
+  runAI();
+}
+async function runAI() {
+  const g = game, step = game.step, q = currentQ();
+  const list = activePlayers().filter((p) => hasText(p) && p.verdictBy !== 'host');
+  if (!judge.enabled()) { g.grading = { status: 'off' }; return; }
+  if (!list.length) { g.grading = { status: 'done' }; return; }
+  g.grading = { status: 'checking' };
+  broadcast();
+  try {
+    const r = await judge.judge(q, list.map((p) => ({ id: p.id, text: p.answer })), content.title);
+    if (game !== g || g.step !== step || g.phase !== 'grading') return;          // the host moved on
+    let missing = 0;
+    for (const p of list) {
+      const v = r[p.id];
+      if (p.verdictBy === 'host') continue;
+      if (!v) { missing++; continue; }
+      p.verdict = v.correct; p.verdictBy = 'ai'; p.verdictReason = v.reason;
+    }
+    g.grading = missing ? { status: 'error', error: `The AI skipped ${missing} answer${missing > 1 ? 's' : ''}` } : { status: 'done' };
+  } catch (e) {
+    if (game !== g || g.step !== step) return;
+    console.warn('  AI judge failed:', e.message);
+    g.grading = { status: 'error', error: e.message };
+  }
+  broadcast();
+}
+// the host taps an answer: right / wrong. During the reveal the score is corrected too.
+function setVerdict(id, correct) {
+  const q = currentQ(), p = game.players.get(id);
+  if (!q || q.type !== 'text' || !p || !hasText(p) || !['grading', 'reveal', 'scoreboard'].includes(game.phase)) return;
+  const was = answerCorrect(q, p);
+  p.verdict = !!correct; p.verdictBy = 'host'; p.verdictReason = '';
+  if (game.phase !== 'grading' && was !== answerCorrect(q, p)) {
+    const d = p.verdict ? content.points : -content.points;
+    p.score += d; p.lastGain = Math.max(0, (p.lastGain || 0) + d);
+    p.streak = p.verdict ? (p.streak || 0) + 1 : 0;
+  }
   broadcast();
 }
 
@@ -270,16 +395,10 @@ function scoreQuestion() {
   const q = currentQ();
   game.lastRanks = Object.fromEntries(ranked().map((p, i) => [p.id, i + 1]));
   for (const p of activePlayers()) {
+    const ok = answerCorrect(q, p);
     p.lastGain = 0;
-    p.streak = p.answer === q.correct ? (p.streak || 0) + 1 : 0;   // answers right in a row
-    if (p.answer === q.correct) {
-      if (q.minigame) p.lastGain = 1000;
-      else {
-        const t = Math.min(1, (p.answerAt - game.answerOpenedAt) / (q.timeLimit * 1000));
-        p.lastGain = Math.round(500 + 500 * (1 - t));
-      }
-      p.score += p.lastGain;
-    }
+    p.streak = ok ? (p.streak || 0) + 1 : 0;                       // answers right in a row
+    if (ok) { p.lastGain = content.points; p.score += p.lastGain; }  // points for being right; speed doesn't matter
     // remember chosen hero for the climb game
     if (q.type === 'hero') p.hero = p.answer != null ? p.answer : Math.floor(Math.random() * q.options.length);
   }
@@ -343,15 +462,17 @@ function advance() {
       if (steps[0].kind === 'game') startMinigame(steps[0].type); else goto('intro');
       break;
     case 'intro':
-      if (s.kind === 'question') goto('showcase');
+      if (s.kind === 'question') goto(currentQ().type === 'text' ? 'answering' : 'showcase');   // nothing to showcase for typed answers
       break;
     case 'showcase':
       goto('answering'); break;
     case 'answering':
+      endAnswering(); break;
+    case 'grading':
       goto('reveal'); break;
     case 'reveal': {
       const q = currentQ();
-      if (q.minigame) startMinigame(q.minigame); else goto('scoreboard');
+      if (q.minigame) startMinigame(q.minigame); else if (showRanks) goto('scoreboard'); else nextStep();
       break;
     }
     case 'mg_intro':
@@ -361,27 +482,33 @@ function advance() {
       else io.to('host').emit('forceFinish');
       break;
     case 'mg_results':
-      goto('scoreboard'); break;
-    case 'scoreboard':
-      game.step++;
-      game.mg = null;
-      if (currentStep().kind === 'question') goto('intro');
-      else if (currentStep().kind === 'game') startMinigame(currentStep().type);
-      else if (currentStep().kind === 'finale') startMinigame(content.finale);
-      else goto('final');
+      if (showRanks) goto('scoreboard'); else nextStep();
       break;
+    case 'scoreboard':
+      nextStep(); break;
   }
+}
+function nextStep() {
+  game.step++;
+  game.mg = null;
+  if (currentStep().kind === 'question') goto('intro');
+  else if (currentStep().kind === 'game') startMinigame(currentStep().type);
+  else if (currentStep().kind === 'finale') startMinigame(content.finale);
+  else goto('final');
 }
 
 setInterval(() => {
-  if (game.phase === 'answering' && !game.paused && Date.now() >= game.deadline) goto('reveal');
+  if (game.phase === 'answering' && !game.paused && Date.now() >= game.deadline) endAnswering();
   if (game.phase === 'mg_play' && game.mg.type === 'catch' && Date.now() >= game.mg.endsAt) finishCatch();
 }, 200);
 
 function maybeEndAnswering() {
   if (game.phase !== 'answering') return;
   const live = activePlayers().filter((p) => p.connected || p.bot);
-  if (live.length && live.every((p) => p.answer != null)) setTimeout(() => game.phase === 'answering' && goto('reveal'), 700);
+  if (live.length && live.every((p) => p.answer != null)) {
+    const step = game.step;
+    setTimeout(() => game.phase === 'answering' && game.step === step && endAnswering(), currentQ()?.type === 'text' ? 2000 : 700);
+  }
 }
 
 function maybeEndCatch() {
@@ -408,12 +535,20 @@ function scheduleBotAnswers(q) {
     const delay = 1500 + Math.random() * (q.timeLimit * 600);
     setTimeout(() => {
       if (game.phase !== 'answering' || p.answer != null) return;
-      p.answer = Math.random() < 0.55 ? q.correct : Math.floor(Math.random() * q.options.length);
+      p.answer = botAnswer(q);
       p.answerAt = Date.now();
       broadcast();
       maybeEndAnswering();
     }, delay);
   }
+}
+
+function botAnswer(q) {
+  const right = Math.random() < 0.55;
+  const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
+  if (q.type === 'text') return right ? q.answers[Math.floor(Math.random() * q.answers.length)].split('/')[0].trim() : pick(['I don\'t know', 'Santa Claus', 'a big house', 'the snowman']);
+  if (q.type === 'choice') return shuffle(right ? q.correct : q.options.map((_, i) => i)).slice(0, q.pick).sort((a, b) => a - b);
+  return right ? q.correct : Math.floor(Math.random() * q.options.length);
 }
 
 function scheduleBotCatch() {
@@ -462,6 +597,9 @@ io.on('connection', (socket) => {
     broadcast();
   });
   socket.on('host:bots', (n) => socket.data.host && addBots(Math.min(20, Number(n) || 5)));
+  socket.on('host:ranks', () => { if (!socket.data.host) return; showRanks = !showRanks; broadcast(); });
+  socket.on('host:verdict', (v) => socket.data.host && v && setVerdict(String(v.id), v.correct === true));
+  socket.on('host:regrade', () => { if (socket.data.host && game.phase === 'grading') runAI(); });
   socket.on('host:reset', (keepPlayers) => {
     if (!socket.data.host) return;
     resetGame(keepPlayers);
@@ -510,12 +648,23 @@ io.on('connection', (socket) => {
     broadcast();
   });
 
-  socket.on('answer', (idx) => {
+  socket.on('answer', (val) => {
     const p = game.players.get(socket.data.playerId);
     const q = currentQ();
-    if (!p || !q || game.phase !== 'answering' || game.paused || p.answer != null) return;
-    if (typeof idx !== 'number' || idx < 0 || idx >= q.options.length) return;
-    p.answer = idx;
+    if (!p || !q || game.phase !== 'answering' || game.paused) return;
+    if (q.type === 'text') {                                         // typed answer; can be changed until time is up
+      const t = String(val ?? '').replace(/\s+/g, ' ').trim().slice(0, 200);
+      if (!t) return;
+      p.answer = t;
+    } else if (p.answer != null) return;
+    else if (q.type === 'choice') {
+      const list = [...new Set((Array.isArray(val) ? val : [val]).map(Number))].filter((i) => Number.isInteger(i) && i >= 0 && i < q.options.length);
+      if (list.length !== q.pick) return;
+      p.answer = list.sort((a, b) => a - b);
+    } else {
+      if (typeof val !== 'number' || val < 0 || val >= q.options.length) return;
+      p.answer = val;
+    }
     p.answerAt = Date.now();
     broadcast();
     maybeEndAnswering();
@@ -552,6 +701,8 @@ server.listen(PORT, () => {
   console.log(`  Host screen : http://localhost:${PORT}/host`);
   console.log(`  Players     : http://localhost:${PORT}/play`);
   console.log(`  Admin panel : http://localhost:${PORT}/admin  (password: ${process.env.ADMIN_PASSWORD ? 'from ADMIN_PASSWORD' : ADMIN_KEY})`);
+  console.log(`  Preview     : http://localhost:${PORT}/preview${PREVIEW_KEY ? '?key=<PREVIEW_KEY>' : '  (open to anyone; set PREVIEW_KEY to lock it)'}`);
+  console.log(`  AI judge    : ${judge.enabled() ? `${judge.info().model} at ${judge.info().baseUrl}` : 'off (set LLM_BASE_URL and LLM_MODEL); the host judges typed answers'}`);
   console.log(`  Questions   : ${fromFile ? store.SAVE_FILE + ' (edited in the admin panel)' : 'content.js'}`);
   console.log(`  For phones (HTTPS needed for tilt on iPhone):  cloudflared tunnel --url http://localhost:${PORT}\n`);
 });
