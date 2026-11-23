@@ -44,6 +44,7 @@ app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public/host.ht
 app.get('/play', (req, res) => res.sendFile(path.join(__dirname, 'public/play.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
 app.get('/preview', (req, res) => res.sendFile(path.join(__dirname, 'public/preview.html')));
+app.get('/:slug/preview', (req, res, next) => (req.params.slug === 'api' ? next() : res.sendFile(path.join(__dirname, 'public/preview.html'))));   // one set: /<set slug>/preview
 
 // ---------------------------------------------------------------- preview API (read-only question browser)
 const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
@@ -57,7 +58,7 @@ app.get('/api/preview', previewOnly, (req, res) => {
   const c = pending || edited;
   res.json({
     title: c.title, activeSet: c.activeSet, mode: c.mode, ai: judge.info().enabled,
-    sets: c.sets.map((x) => ({ id: x.id, name: x.name, title: x.title || c.title, points: x.points, questions: x.questions })),
+    sets: c.sets.map((x) => ({ id: x.id, name: x.name, title: x.title || c.title, points: x.points, timer: x.timer !== false, quizOnly: !!x.quizOnly, questions: x.questions })),
   });
 });
 // try a typed answer against the judge (local match + AI), so organisers can test the grading
@@ -268,6 +269,7 @@ function hostView() {
     points: content.points,
     hideWifi: !!content.quizOnly,                  // quiz-only sets: no Wi-Fi QR in the lobby
     showRanks,
+    timed: content.timer,                          // false: no countdown, the host moves on
     grading: game.grading,
     accepted: q?.type === 'text' && (showAnswer || game.phase === 'grading') ? q.answers : null,
     pin: game.pin,
@@ -279,7 +281,7 @@ function hostView() {
     counts,
     answered: activePlayers().filter((p) => p.answer != null).length,
     paused: game.paused,
-    remaining: game.paused ? game.remaining : Math.max(0, game.deadline - Date.now()),
+    remaining: !content.timer ? 0 : game.paused ? game.remaining : Math.max(0, game.deadline - Date.now()),
     timeLimit: q ? q.timeLimit * 1000 : 0,
     mg: game.mg && { type: game.mg.type, status: game.mg.status, results: game.mg.results, endsAt: game.mg.endsAt, bonus: game.mg.bonus },
     players: ranked().map((p) => ({
@@ -331,7 +333,7 @@ function goto(phase) {
     for (const p of game.players.values()) { p.answer = null; p.answerAt = null; clearVerdict(p); }
     game.grading = null;
     game.answerOpenedAt = Date.now();
-    game.deadline = Date.now() + q.timeLimit * 1000;
+    game.deadline = content.timer ? Date.now() + q.timeLimit * 1000 : Infinity;
     game.paused = false;
     scheduleBotAnswers(q);
   }
@@ -584,7 +586,7 @@ io.on('connection', (socket) => {
 
   socket.on('host:advance', () => socket.data.host && advance());
   socket.on('host:pause', () => {
-    if (!socket.data.host || game.phase !== 'answering') return;
+    if (!socket.data.host || game.phase !== 'answering' || !content.timer) return;
     if (game.paused) { game.deadline = Date.now() + game.remaining; game.paused = false; }
     else { game.remaining = Math.max(0, game.deadline - Date.now()); game.paused = true; }
     broadcast();

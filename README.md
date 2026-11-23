@@ -13,7 +13,7 @@ WIFI_SSID="YourWifi" WIFI_PASSWORD="secret" ADMIN_PASSWORD="1234" npm start
 - **Projector:** open `https://<your-address>/host` in Chrome, click **Start hosting**, and press F for fullscreen.
 - **Players:** scan the QR code on screen, or go to `/play`.
 - **Wi-Fi QR:** if `WIFI_SSID` is set, the lobby also shows a "join the Wi-Fi" QR code. Use a different value for `ADMIN_PASSWORD` than `WIFI_PASSWORD`, since the Wi-Fi password is shown to everyone.
-- **Preview:** co-organisers open `/preview` to browse every set with its answers and try the questions, without joining or scanning a QR code. Set `PREVIEW_KEY` to lock it (`/preview?key=…`); without it the page is open to anyone with the link.
+- **Preview:** each set has a link name (slug, set in Admin) and its own page at `/<slug>/preview`, e.g. `/advent/preview`; `/preview` lists all sets. Co-organisers see every question with its answers, and **▶ Simulate the game** plays the set start to finish (big screen + phone side by side, same scoring, typed answers go to the real judge). No joining or QR code. Set `PREVIEW_KEY` to lock these pages (`?key=…`); without it they are open to anyone with the link.
 
 ### AI judge for typed answers (optional)
 *Typed answer* questions let each group type its answer. Short answers are matched by keyword (spelling slips allowed), and if an OpenAI-compatible endpoint is set, a model judges every answer:
@@ -24,6 +24,8 @@ LLM_MODEL="qwen2.5:7b-instruct"            # any chat model the server has
 LLM_API_KEY=""                             # optional
 LLM_TIMEOUT_MS=20000                       # optional
 ```
+
+The AI gets the question, the accepted answers and the question's **marking guide** (Admin → the question → *Marking guide for the AI judge*), and replies point / no point with a one-line reason, which the host sees under each answer. It runs automatically whenever `LLM_BASE_URL` and `LLM_MODEL` are set.
 
 After time is up, the projector shows every group's answer with a ✓ or ✕. **Click an answer to flip it**, then press Space to reveal. If the model can't be reached, the screen says so (with *Try again*) and unmatched answers wait for the host's tap. Clicking during the reveal corrects the score too. **Admin → Settings → Test the AI judge** checks the connection.
 
@@ -55,6 +57,7 @@ Open `/admin` (or **⚙ Admin** in the host controls) and log in with the admin 
 - **Question sets:** tabs at the top of the Questions page switch which set you edit; **▶ Play this set** picks the one the game uses. Each set has its own title on screen, points per right answer and finale. You can also add, duplicate, rename or delete sets.
   Every file in `question-sets/` (`.js` or `.json`) is a built-in set and is added once; `.json` sets dropped into `DATA_DIR/question-sets/` are picked up too. See `question-sets/advent.js` for the format.
 - **Scoring:** a right answer gives the set's points. Speed doesn't matter.
+- **Timer:** per set. With the timer off, a question stays open until every phone has answered or the host presses Space. Sets marked *Quiz only* (no mini games, no finale, no Wi-Fi QR) start with the timer off.
 - **Question types:** *Multiple choice* has up to 6 answers and one or more right ones. With several, set how many the groups pick ("name any two" = 4 right, pick 2); it counts when every pick is right. *Typed answer* has accepted answers (one per line, `/` between words that mean the same), how many items are needed, and notes for the AI judge.
 - **Questions:** edit the text, hint, fun fact, time limit, answers and the correct answer. Each question type has its own fields (pictures, emoji, colours, sounds, flags…).
 - **Reorder:** drag the ⠿ handle, or use the ↑ ↓ buttons (works on phones).

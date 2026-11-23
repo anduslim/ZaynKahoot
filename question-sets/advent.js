@@ -16,6 +16,7 @@ module.exports = {
   points: 1,
   finale: 'none',
   quizOnly: true,
+  timer: false,
   questions: [
     {
       id: 'adv-sundays', type: 'choice', timeLimit: 30,

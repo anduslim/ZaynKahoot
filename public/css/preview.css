@@ -42,3 +42,64 @@ main { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
 .fact { color: var(--soft); font-size: 15px; }
 .keybox { max-width: 360px; margin: 18vh auto 0; display: flex; flex-direction: column; gap: 12px; text-align: center; }
 .keybox h1 { font-family: var(--display); }
+a { color: var(--yellow); }
+.actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 12px 0; }
+.btn.big { height: 52px; font-size: 19px; padding: 0 22px; }
+.btn.ghost { background: transparent; color: #fff; border: 2px solid var(--panel2); }
+.share { font-weight: 800; font-size: 14px; word-break: break-all; }
+
+/* ---- game simulator ---- */
+.sim { position: fixed; inset: 0; z-index: 100; background: var(--ink); display: flex; flex-direction: column; }
+.sim-top { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--panel); flex-wrap: wrap; }
+.sim-top .grow { flex: 1; }
+.sim-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; padding: 16px; }
+.slabel { font-weight: 800; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.sstage { background: #150f3a; border-radius: 18px; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; overflow: auto; min-height: 0; }
+.shead { display: flex; gap: 16px; align-items: center; }
+.shead h2 { font-family: var(--display); font-size: clamp(20px, 2.6vw, 34px); margin: 2px 0 0; line-height: 1.15; }
+.kick { font-weight: 800; letter-spacing: .2em; font-size: 12px; color: var(--muted); text-transform: uppercase; }
+.kick span { color: var(--yellow); }
+.stimer { flex: none; width: 64px; height: 64px; border-radius: 50%; border: 6px solid var(--yellow); display: grid; place-items: center; font-family: var(--display); font-size: 26px; }
+.stimer.low { border-color: var(--red); }
+.sfeat { flex: 1; display: grid; place-items: center; min-height: 120px; }
+.sthink { font-size: 110px; animation: floaty 2s infinite; }
+.sres { font-family: var(--display); font-size: 44px; font-weight: 700; padding: 10px 30px; border-radius: 20px; }
+.sres.yes, .pres.yes { background: var(--green); } .sres.no, .pres.no { background: var(--red); }
+.sopts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sopt { position: relative; display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 8px 14px; border-radius: 14px; font-family: var(--display); font-size: clamp(15px, 1.6vw, 22px); font-weight: 600; border: 4px solid transparent; transition: opacity .3s; }
+.sopt .shape { width: 24px; height: 24px; flex: none; } .sopt .shape svg { width: 100%; height: 100%; }
+.sopt .em { font-size: 28px; } .sopt img { height: 40px; width: 40px; object-fit: contain; }
+.sopt.dim { opacity: .3; } .sopt.right { border-color: #fff; } .sopt.right::after { content: '✓'; margin-left: auto; font-size: 26px; }
+.sopt.mine { outline: 3px dashed var(--yellow); outline-offset: 2px; }
+.sfact { color: var(--ink); background: var(--yellow); border-radius: 12px; padding: 8px 14px; font-weight: 800; width: fit-content; }
+.swrite { font-size: 90px; text-align: center; animation: floaty 2s infinite; }
+.swrite .hint { font-size: 18px; margin: 8px auto 0; }
+.sacc { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.scard { text-align: left; color: #fff; width: min(460px, 100%); background: var(--panel); border: 4px solid var(--panel2); border-radius: 18px; padding: 14px 18px; display: flex; flex-direction: column; gap: 6px; font-family: var(--body); }
+.scard.yes { border-color: #8EF0A8; background: #1E6B3A; } .scard.no { border-color: #FF9AA2; background: #6B1F2A; }
+.scard .vd { font-family: var(--display); font-size: 40px; line-height: 1; }
+.scard .ans { font-family: var(--display); font-size: 24px; }
+.scard .by { color: var(--soft); font-size: 13px; font-weight: 800; }
+.sfinal { flex: 1; display: grid; place-items: center; text-align: center; }
+.sfinal .big { font-size: 110px; } .sfinal h2 { font-family: var(--display); font-size: 40px; margin: 0; } .sfinal p { font-size: 24px; }
+.sphone { display: flex; flex-direction: column; min-height: 0; }
+.pscreen { flex: 1; min-height: 0; overflow: auto; background: var(--ink); border: 10px solid #000; border-radius: 34px; padding: 18px 14px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 0 0 2px var(--panel2); }
+.pq { font-family: var(--display); font-weight: 600; font-size: 19px; line-height: 1.15; }
+.ps { color: var(--soft); font-size: 15px; }
+.ppad { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: stretch; }
+.ppad.many { grid-template-columns: repeat(3, 1fr); }
+.ppad button { position: relative; border: 0; border-radius: 18px; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px; font-size: 15px; font-weight: 700; min-height: 70px; }
+.ppad button .em { font-size: 30px; }
+.ppad button.picked { outline: 5px solid #fff; outline-offset: -5px; } .ppad button.picked::after { content: '✓'; position: absolute; top: 4px; right: 10px; font-size: 22px; }
+.pscreen textarea { flex: 1; min-height: 120px; border-radius: 14px; border: 0; padding: 12px; font-family: var(--display); font-size: 20px; color: var(--ink); resize: none; }
+.pmid { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; }
+.pmid .big { font-size: 64px; line-height: 1; } .pmid .spin { animation: spin 2s linear infinite; }
+.pt { font-family: var(--display); font-size: 26px; font-weight: 700; }
+.pres { border-radius: 22px; padding: 20px; width: 100%; }
+.mine { font-family: var(--display); background: var(--panel); border-radius: 12px; padding: 8px 12px; word-break: break-word; }
+.pbar { display: flex; justify-content: space-between; background: var(--panel); border-radius: 12px; padding: 8px 12px; font-family: var(--display); }
+@media (max-width: 800px) {
+  .sim-body { display: flex; flex-direction: column; overflow: auto; }
+  .sstage, .sphone { flex: none; overflow: visible; }
+  .pscreen { min-height: 460px; }
+}

@@ -41,7 +41,7 @@ socket.on('state', (st) => {
   if (key !== phaseKey) { phaseKey = key; enter(st, prev); }
   else update(st, prev);
   document.getElementById('ctl-phase').textContent = st.phase.replace('_', ' ');
-  document.getElementById('ctl-pause').style.display = st.phase === 'answering' ? '' : 'none';
+  document.getElementById('ctl-pause').style.display = st.phase === 'answering' && st.timed ? '' : 'none';
   const rk = document.getElementById('ctl-ranks');
   rk.textContent = st.showRanks ? 'Rankings: on' : 'Rankings: off';
   rk.classList.toggle('off', !st.showRanks);
@@ -116,10 +116,12 @@ function optionsGrid(st, opts = {}) {
 
 function qHead(st, withTimer) {
   const qq = st.question;
+  const showAnswers = withTimer;
+  withTimer = withTimer && st.timed;
   return `<div class="qhead">
     ${withTimer ? `<div class="timer"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" stroke="rgba(255,255,255,.15)" stroke-width="10" fill="none"/><circle id="tring" cx="50" cy="50" r="44" stroke="#FFC93C" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><b id="tnum">${Math.ceil(st.remaining / 1000)}</b></div>` : ''}
     <div class="q"><div class="kicker">Question ${qq.index + 1} of ${qq.total}${qq.pick > 1 ? ` · <span class="pick">Pick ${qq.pick}</span>` : ''}${qq.type === 'text' ? ' · <span class="pick">Type your answer</span>' : ''}</div>${esc(qq.text)}</div>
-    ${withTimer ? `<div class="answered"><b id="ansn">${st.answered}</b><span>answers</span></div>` : ''}
+    ${showAnswers ? `<div class="answered"><b id="ansn">${st.answered}</b><span>answers</span></div>` : ''}
   </div>`;
 }
 
@@ -366,7 +368,8 @@ function renderJudging(st) {
     return `<button class="jcard ${cls}" data-id="${p.id}" title="${esc(p.verdictReason || '')}">
       <div class="jtop">${avatarHTML(p.avatar, 44)}<span class="nm">${esc(p.name)}</span><span class="vd">${v === true ? '✓' : v === false ? '✕' : '?'}</span></div>
       <div class="ans">${typeof p.answer === 'string' && p.answer ? esc(p.answer) : '<em>No answer</em>'}</div>
-      <div class="by">${p.verdictBy ? by[p.verdictBy] || '' : judging && st.grading?.status === 'checking' ? 'checking…' : 'tap to judge'}${p.verdictReason ? ' · ' + esc(p.verdictReason) : ''}</div>
+      <div class="by">${p.verdictBy ? by[p.verdictBy] || '' : judging && st.grading?.status === 'checking' ? 'checking…' : 'tap to judge'}</div>
+      ${p.verdictReason ? `<div class="why">${esc(p.verdictReason)}</div>` : ''}
     </button>`;
   }).join('') || '<div class="hint">No players yet</div>';
   g.querySelectorAll('.jcard').forEach((el) => el.onclick = () => {

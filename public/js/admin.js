@@ -136,7 +136,7 @@
           <span class="chips">
             <span class="chip ok" title="Correct answer">✓ ${answerSummary(q)}</span>
             ${q.minigame ? `<span class="chip mg" title="Mini game afterwards">${MG_ICON[q.minigame]} ${MINIGAMES[q.minigame]}</span>` : ''}
-            <span class="chip">⏱ ${q.timeLimit}s</span>
+            ${data.sets[viewSet].timer === false ? '' : `<span class="chip">⏱ ${q.timeLimit}s</span>`}
           </span>
           <span class="tools">
             <label class="switch" title="${on ? 'In the game' : 'Skipped'}"><input type="checkbox" data-act="enable" ${on ? 'checked' : ''}><span></span></label>
@@ -166,13 +166,23 @@
         <label class="field set-name"><span class="lbl">Set name</span><input data-path="sets.${viewSet}.name" value="${esc(set.name)}" maxlength="40"></label>
         <label class="field set-name"><span class="lbl">Title on screen</span><input data-path="sets.${viewSet}.title" value="${esc(set.title || '')}" maxlength="60" placeholder="${esc(data.title)}"></label>
         <label class="field set-small"><span class="lbl">Points per right answer</span><input type="number" min="1" max="5000" data-path="sets.${viewSet}.points" data-kind="int" value="${set.points ?? 1000}"></label>
+        <label class="field set-small"><span class="lbl">Link name (slug)</span><input data-act="slug" value="${esc(set.id)}" maxlength="30" pattern="[a-z0-9-]+"></label>
+        <label class="check set-check" title="Count down each question. Off: a question stays open until everyone has answered or you press Next"><input type="checkbox" data-path="sets.${viewSet}.timer" ${set.timer !== false ? 'checked' : ''}> Timer</label>
         <label class="check set-check" title="Only the questions: no mini games, no finale and no Wi-Fi QR code in the lobby, whatever Settings says"><input type="checkbox" data-path="sets.${viewSet}.quizOnly" ${set.quizOnly ? 'checked' : ''}> Quiz only</label>
         <label class="field set-small ${set.quizOnly ? 'hidden' : ''}"><span class="lbl">Finale</span><select data-path="sets.${viewSet}.finale">${[['', 'As in Settings'], ['none', 'No finale'], ['race', 'Grand Prix'], ['climb', 'Hero Tower Escape']].map(([v, l]) => `<option value="${v}" ${(set.finale || '') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <a class="btn small ghost" href="/${encodeURIComponent(set.id)}/preview" target="_blank" title="Preview and simulate this set">👀 /${esc(set.id)}/preview</a>
         ${playing ? '<span class="pill ok">▶ This set is played in the game</span>' : '<button class="btn small primary" data-setact="play">▶ Play this set</button>'}
         <button class="btn small" data-setact="dup">⧉ Duplicate set</button>
         ${data.sets.length > 1 ? '<button class="btn small danger" data-setact="del">Delete set</button>' : ''}
       </div>`;
     bindInputs($('#sets'));
+    const slug = $('#sets [data-act="slug"]');
+    slug.addEventListener('change', () => {                 // the slug is the set's id: keep it unique, and keep "played" pointing at it
+      const clean = slug.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
+      if (!clean || data.sets.some((x, k) => k !== viewSet && x.id === clean)) { toast('That link name is empty or already used', true); slug.value = set.id; return; }
+      if (data.activeSet === set.id) data.activeSet = clean;
+      set.id = clean; renderSets(); markDirty();
+    });
     $$('#sets [data-set]').forEach((b) => (b.onclick = () => { viewSet = +b.dataset.set; open.clear(); renderQuestions(); }));
     $$('#sets [data-setact]').forEach((b) => (b.onclick = () => {
       const act = b.dataset.setact, rid = () => Math.random().toString(36).slice(2, 7);
@@ -213,7 +223,8 @@
         ${field('Fun fact', inp(`${p}.fact`, q.fact, 'maxlength="120" placeholder="Read out after the answer"'))}
         ${field('Mini game afterwards', `<select data-path="${p}.minigame">${mgOptions}</select>`)}
       </div>
-      ${field(`Time to answer: <b data-show="${p}.timeLimit">${q.timeLimit}</b> seconds`, `<input type="range" min="5" max="120" step="5" data-path="${p}.timeLimit" data-kind="int" value="${q.timeLimit}">`)}
+      ${data.sets[viewSet].timer === false ? '<small class="muted">No timer in this set: the question stays open until everyone has answered or you press Next.</small>'
+        : field(`Time to answer: <b data-show="${p}.timeLimit">${q.timeLimit}</b> seconds`, `<input type="range" min="5" max="180" step="5" data-path="${p}.timeLimit" data-kind="int" value="${q.timeLimit}">`)}
       ${q.type === 'text' ? textExtras(q, i) : `
       <div class="lbl answers-lbl">Answers <small>${q.type === 'choice' ? 'Tap the circles to mark the right answers (one or more)' : 'Tap the circle to mark the right one'}</small></div>
       <div class="opts ${q.type === 'pokemon' ? 'many' : ''}">${q.options.map((o, k) => optionHTML(q, i, o, k)).join('')}</div>
@@ -256,7 +267,7 @@
       ${field('Accepted answers', `<textarea data-path="${p}.answers" data-kind="lines" rows="4" placeholder="One per line. Use / for words that mean the same, e.g. Wise Men / Kings / Magi">${esc((q.answers || []).join('\n'))}</textarea>`, 'One item per line; “/” between words that mean the same thing. Short answers are also matched without the AI, with spelling slips allowed.')}
       <div class="grid2">
         ${field('Items needed', `<input type="number" min="1" max="${n}" data-path="${p}.needed" data-kind="int" value="${q.needed || 1}">`, 'How many different lines the answer must name, e.g. 2 for “name any two”')}
-        ${field('Notes for the AI judge (optional)', `<textarea data-path="${p}.notes" rows="2" maxlength="600" placeholder="e.g. Accept close spellings. “A stable” alone is wrong.">${esc(q.notes || '')}</textarea>`)}
+        ${field('Marking guide for the AI judge', `<textarea data-path="${p}.notes" rows="4" maxlength="1500" placeholder="What earns the point and what doesn't, e.g. Accept close spellings. “A stable” alone is wrong.">${esc(q.notes || '')}</textarea>`, 'Sent to the AI with every answer. It replies with point / no point and its reasoning, shown on the host screen.')}
       </div></div>`;
   }
 
@@ -295,7 +306,8 @@
         $$(`[data-show="${el.dataset.path}"]`).forEach((s) => (s.textContent = v));
         if (/\.(text|label|emoji|minigame|timeLimit|answers|pick)$/.test(el.dataset.path) && tab === 'questions') refreshHead(el);
         if (/^sets\.\d+\.finale$/.test(el.dataset.path)) renderOrder();
-        if (/^sets\.\d+\.quizOnly$/.test(el.dataset.path)) { renderQuestions(); }
+        if (/^sets\.\d+\.quizOnly$/.test(el.dataset.path)) { if (v) data.sets[viewSet].timer = false; renderQuestions(); }
+        if (/^sets\.\d+\.timer$/.test(el.dataset.path)) renderQuestions();
         if (/^sets\.\d+\.name$/.test(el.dataset.path)) { const t = $(`.set-tab[data-set="${viewSet}"] .nm`); if (t) t.textContent = v || 'Untitled set'; }
         markDirty();
       });
