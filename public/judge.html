@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Quiz · Judge</title>
+<link rel="stylesheet" href="/css/base.css">
+<style>
+  body { background: var(--bg, #1B1446); color: #fff; margin: 0; font-family: var(--body); }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 14px 16px 110px; }
+  header { display: flex; align-items: center; gap: 10px; }
+  header h1 { font-family: var(--display); font-size: 22px; margin: 0; flex: 1; }
+  .ph { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; background: rgba(255,255,255,.12); padding: 4px 10px; border-radius: 999px; }
+  .q { font-family: var(--display); font-size: 20px; font-weight: 600; margin: 14px 0 6px; line-height: 1.25; }
+  .acc { display: inline-block; background: #1E6B3A; border-radius: 10px; padding: 3px 10px; margin: 2px 4px 2px 0; font-weight: 700; font-size: 14px; }
+  .muted { color: var(--soft, #c9c3ef); font-size: 14px; }
+  .status { margin: 10px 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .pill { background: rgba(255,255,255,.12); border-radius: 999px; padding: 5px 12px; font-size: 14px; font-weight: 700; }
+  .pill.bad { background: #6B1F2A; } .pill.ok { background: #1E6B3A; } .pill.warn { background: #7A5A00; }
+  .card { width: 100%; text-align: left; color: #fff; background: rgba(255,255,255,.08); border: 3px solid transparent; border-radius: 16px; padding: 12px 14px; margin: 8px 0; font: inherit; display: block; }
+  .card.yes { border-color: #8EF0A8; background: #1E6B3A; } .card.no { border-color: #FF9AA2; background: #6B1F2A; }
+  .card .top { display: flex; align-items: center; gap: 8px; }
+  .card .nm { flex: 1; font-family: var(--display); font-weight: 700; font-size: 17px; }
+  .card .vd { font-family: var(--display); font-size: 26px; font-weight: 700; }
+  .card .ans { font-family: var(--display); font-size: 20px; margin: 6px 0 4px; word-break: break-word; }
+  .card .why { font-size: 14px; opacity: .9; font-style: italic; }
+  .card .by { font-size: 12px; font-weight: 800; opacity: .75; margin-top: 4px; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: rgba(20,14,56,.96); display: flex; gap: 10px; justify-content: center; }
+  .bar button { font-family: var(--display); font-size: 18px; font-weight: 700; border: 0; border-radius: 14px; padding: 14px 18px; }
+  #next { background: var(--yellow, #FFC93C); color: #1B1446; flex: 1; max-width: 420px; }
+  #regrade { background: rgba(255,255,255,.15); color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="muted">Connecting…</p></div>
+<div class="bar"><button id="regrade" hidden>🤖 Ask the AI again</button><button id="next">Next ▸</button></div>
+<script src="/vendor/socket.io-client/socket.io.min.js"></script>
+<script src="/js/shared.js"></script>
+<script src="/js/judge.js"></script>
+</body>
+</html>

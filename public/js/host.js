@@ -69,6 +69,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyP') socket.emit('host:pause');
   if (e.code === 'KeyB') socket.emit('host:bots', 5);
   if (e.code === 'KeyR') socket.emit('host:ranks');
+  if (e.code === 'KeyJ') document.body.classList.toggle('cards-on');   // show each group's typed answer on the TV (hidden by default)
   if (e.code === 'KeyM') document.getElementById('ctl-mute').click();
   if (e.code === 'KeyF') document.getElementById('ctl-fs').click();
 });
@@ -361,10 +362,13 @@ function startShadowLineup(qq) {
 function grading(st) {
   Sound.music(null);
   Sound.play('whoosh');
+  // The TV is shared, so it shows no group's answer: each phone shows its own verdict and reason.
+  // The host checks or flips verdicts on /judge (phone), or presses J to show the cards here.
   view(`<div class="screen">${qHead(st, false)}
-    <div class="judge-head"><div class="accepted"><span class="kicker">Accepted</span> ${acceptedHTML(st)}</div><div id="jstatus"></div></div>
-    <div class="jgrid" id="jgrid"></div>
-    <div class="kicker judge-tip">Click an answer to mark it right or wrong · Space to reveal</div></div>`);
+    <div class="judge-head"><span class="kicker">Answers are in</span><div id="jstatus"></div></div>
+    <div class="tv-summary" id="tvsum"></div>
+    <div class="jgrid private" id="jgrid"></div>
+    <div class="kicker judge-tip">Judge on your phone: <b>${esc(location.host)}/judge</b> · Space to reveal</div></div>`);
   renderJudging(st);
 }
 const acceptedHTML = (st) => (st.accepted || []).map((a) => `<span class="acc">${esc(a.split('/').map((x) => x.trim()).filter(Boolean).slice(0, 3).join(' / '))}</span>`).join('');
@@ -372,6 +376,15 @@ const acceptedHTML = (st) => (st.accepted || []).map((a) => `<span class="acc">$
 function renderJudging(st) {
   const g = document.getElementById('jgrid'); if (!g) return;
   const judging = st.phase === 'grading';
+  const sum = document.getElementById('tvsum');
+  if (sum) {
+    const n = st.players.length, answered = st.players.filter((p) => typeof p.answer === 'string' && p.answer.trim()).length;
+    const right = st.players.filter((p) => p.correct).length;
+    sum.innerHTML = judging
+      ? `<div class="emoji-big" style="font-size:18vh;animation:floaty 2s infinite">🧑‍⚖️</div><div class="big-line">${answered} of ${n} group${n === 1 ? '' : 's'} answered</div>
+         <div class="hint">${st.grading?.status === 'checking' ? 'The judges are checking…' : 'Ready for the answer!'}</div>`
+      : `<div class="right-count ${right ? 'some' : ''}">${right ? `✓ ${right} of ${n} group${n === 1 ? '' : 's'} got it right` : `No group got it this time`}</div>`;
+  }
   const by = { ai: '🤖 AI', match: '✓ word match', host: '👤 host', blank: 'no answer' };
   g.innerHTML = st.players.map((p) => {
     const v = judging ? p.verdict : p.correct;
@@ -409,7 +422,9 @@ async function reveal(st) {
     const right = st.players.filter((p) => p.correct).length;
     view(`<div class="screen">${qHead(st, false)}
       <div class="judge-head"><div class="accepted big"><span class="kicker">The answer</span> ${acceptedHTML(st)}</div></div>
-      ${sceneHTML(qq, 'reveal') ? `<div class="reveal-row"><div class="feature scene-side">${sceneHTML(qq, 'reveal')}</div><div class="jgrid" id="jgrid"></div></div>` : '<div class="jgrid" id="jgrid"></div>'}</div>`);
+      <div class="tv-summary ${sceneHTML(qq, 'reveal') ? 'inline' : ''}" id="tvsum"></div>
+      ${sceneHTML(qq, 'reveal') ? `<div class="feature">${sceneHTML(qq, 'reveal')}</div>` : ''}
+      <div class="jgrid private" id="jgrid"></div></div>`);
     renderJudging(st);
     Sound.play(right ? 'correct' : 'wrong');
     if (right) confetti();

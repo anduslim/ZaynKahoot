@@ -43,6 +43,7 @@ app.get('/', (req, res) => res.redirect('/play'));
 app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public/host.html')));
 app.get('/play', (req, res) => res.sendFile(path.join(__dirname, 'public/play.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
+app.get('/judge', (req, res) => res.sendFile(path.join(__dirname, 'public/judge.html')));   // the host's phone: answers, verdicts, Next
 app.get('/preview', (req, res) => res.sendFile(path.join(__dirname, 'public/preview.html')));
 app.get('/:slug/preview', (req, res, next) => (req.params.slug === 'api' ? next() : res.sendFile(path.join(__dirname, 'public/preview.html'))));   // one set: /<set slug>/preview
 
