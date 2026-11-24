@@ -273,3 +273,6 @@ body.cards-on .tv-summary.inline + .feature { display: none; }
 /* a long fact sits under the title instead of covering it */
 .sb-head { flex-direction: column; gap: 1.4vh; }
 .sb-head .fact { position: static; max-width: 84vw; text-align: center; }
+/* answer labels start in one column whatever the emoji's width */
+.opt .em { width: 7vh; text-align: center; }
+.opts.six .opt .em { width: 5.6vh; }

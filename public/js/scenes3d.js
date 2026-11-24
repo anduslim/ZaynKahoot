@@ -633,7 +633,7 @@ const SCENES = {
     const sun = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), basic(0xFFD54A, 2.2)); sun.position.set(8, 7, -12); root.add(sun);
     const mary = person({ robe: 0x3B82F6, scarf: 0xF8FAFC }); root.add(mary);
     const eliz = person({ robe: 0xB45309, scarf: 0xD6D3D1, height: 1.7 }); root.add(eliz);
-    const little = baby(); little.scale.setScalar(0.7); root.add(little);
+    const little = baby(); little.scale.setScalar(0.42); root.add(little);
     const heart = text('❤', { size: 1, color: '#F43F5E' }); root.add(heart);
     const lbl = text('Baby John leapt for joy!', { size: 0.75 }); lbl.position.set(0, 4.3, 0); root.add(lbl);
     const sp = sparkles(30, 0xFFE27A, [1.5, 2.5, 1]); root.add(sp);
@@ -653,8 +653,8 @@ const SCENES = {
           popScale(heart, prog(t, 1, 0.5)); heart.position.set(0.15, 2.9 + Math.sin(t * 3) * 0.1, 0.6);
           little.visible = t > 1.4;
           const leap = Math.abs(Math.sin((t - 1.4) * 3.2));
-          little.position.set(1.0, 2.6 + leap * 0.9, 0.9); little.rotation.z = Math.sin(t * 6) * 0.3;
-          sp.visible = t > 1.4; sp.position.set(1.0, 2.2, 0.9);
+          little.position.set(1.0, 1.1 + leap * 0.22, 1.25); little.rotation.z = Math.sin(t * 6) * 0.25;   // a happy kick inside Elizabeth
+          sp.visible = t > 1.4; sp.position.set(1.0, 1.4, 1.3);
           popScale(lbl, prog(t, 1.6, 0.5));
         }
       },
