@@ -11,6 +11,9 @@
 //           with "/" between words that mean the same thing. `needed` is how many different
 //           items the answer must name. A local AI model judges the answers (see README) and
 //           the host can tap any answer to mark it right or wrong.
+//
+// `rev` is a question's revision. Raise it after changing a question here and the server
+// updates that question in the copy saved from Admin too (keeping whether it is switched on).
 module.exports = {
   id: 'advent',
   name: 'Advent & Christmas 2026',
@@ -21,11 +24,11 @@ module.exports = {
   timer: false,
   questions: [
     {
-      id: 'adv-sundays', type: 'choice', scene: 'wreath', timeLimit: 30,
+      id: 'adv-sundays', type: 'choice', scene: 'wreath', timeLimit: 30, rev: 2,
       text: 'How many Sundays of Advent are there before Christmas?',
       fact: 'There are 4 Sundays of Advent, and we light one more candle each week!',
-      options: [{ label: '2', emoji: '2️⃣' }, { label: '3', emoji: '3️⃣' }, { label: '4', emoji: '4️⃣' }, { label: '5', emoji: '5️⃣' }, { label: '6', emoji: '6️⃣' }, { label: '12', emoji: '🔢' }],
-      correct: [2],
+      options: [{ label: '1', emoji: '1️⃣' }, { label: '2', emoji: '2️⃣' }, { label: '3', emoji: '3️⃣' }, { label: '4', emoji: '4️⃣' }, { label: '5', emoji: '5️⃣' }, { label: '6', emoji: '6️⃣' }],
+      correct: [3],
     },
     {
       id: 'adv-rose', type: 'choice', scene: 'rose-candle', timeLimit: 30,
@@ -43,12 +46,12 @@ module.exports = {
       notes: 'Accept close spellings of Gaudete (e.g. Gaudeti, Gowdetay). "Rose Sunday" or "Joy Sunday" alone is not the name asked for.',
     },
     {
-      id: 'adv-candles', type: 'choice', scene: 'candle-words', timeLimit: 45, pick: 2,
+      id: 'adv-candles', type: 'choice', scene: 'candle-words', timeLimit: 45, pick: 2, rev: 2,
       text: 'Each Advent candle stands for something. Pick any two!',
       hint: 'Choose 2 answers',
       fact: 'Week 1 Hope, Week 2 Peace, Week 3 Joy, Week 4 Love.',
-      options: [{ label: 'Hope', emoji: '🙏' }, { label: 'Peace', emoji: '🕊️' }, { label: 'Joy', emoji: '😊' }, { label: 'Love', emoji: '❤️' }, { label: 'Presents', emoji: '🎁' }, { label: 'Snow', emoji: '❄️' }],
-      correct: [0, 1, 2, 3],
+      options: [{ label: 'Joy', emoji: '😊' }, { label: 'Charity', emoji: '🤲' }, { label: 'Hope', emoji: '🙏' }, { label: 'Kindness', emoji: '🤗' }, { label: 'Love', emoji: '❤️' }, { label: 'Peace', emoji: '🕊️' }],
+      correct: [0, 2, 4, 5],
     },
     {
       id: 'adv-purple', type: 'choice', scene: 'vestment', timeLimit: 30,
@@ -66,19 +69,19 @@ module.exports = {
       notes: 'Either idea is enough: being sorry / penance, or getting our hearts ready for Jesus (confession, forgiving others, doing good). "Because it is a royal colour for Jesus the King" is also acceptable. Wrong: "because it is pretty", "because the priest likes it".',
     },
     {
-      id: 'adv-why-christmas', type: 'choice', scene: 'two-comings', timeLimit: 45, pick: 2,
-      text: 'Why do we celebrate Christmas every year? Pick the two reasons!',
+      id: 'adv-why-christmas', type: 'choice', scene: 'two-comings', timeLimit: 45, pick: 2, rev: 2,
+      text: 'As Christians, why do we celebrate Christmas every year?',
       hint: 'Choose 2 answers',
       fact: 'We remember Jesus’ first coming (the Incarnation) and wait for His second coming (the Parousia).',
       options: [
+        { label: 'To sing Christmas carols', emoji: '🎶' },
         { label: 'To remember Jesus’ first coming (Incarnation)', emoji: '👶' },
+        { label: 'To have celebrative meals in December', emoji: '🍗' },
+        { label: 'To celebrate Jesus’ Birthday', emoji: '🎂' },
+        { label: 'To go shopping for Christmas gifts', emoji: '🛍️' },
         { label: 'To await Jesus’ second coming (Parousia)', emoji: '✨' },
-        { label: 'To get presents', emoji: '🎁' },
-        { label: 'Because of Santa', emoji: '🎅' },
-        { label: 'For the school holidays', emoji: '🏖️' },
-        { label: 'To eat yummy food', emoji: '🍗' },
       ],
-      correct: [0, 1],
+      correct: [1, 5],
     },
     {
       id: 'adv-john', type: 'text', scene: 'visitation', timeLimit: 60,
@@ -89,10 +92,10 @@ module.exports = {
       notes: '"John" alone is correct. "John the Apostle" or "Jesus" is wrong.',
     },
     {
-      id: 'adv-bethlehem', type: 'choice', scene: 'bethlehem', timeLimit: 30,
+      id: 'adv-bethlehem', type: 'choice', scene: 'bethlehem', timeLimit: 30, rev: 2,
       text: 'In which city was Jesus born?',
       fact: 'Jesus was born in Bethlehem, the city of King David.',
-      options: [{ label: 'Nazareth', emoji: '🏘️' }, { label: 'Jerusalem', emoji: '🏛️' }, { label: 'Bethlehem', emoji: '⭐' }, { label: 'Rome', emoji: '🏟️' }],
+      options: [{ label: 'Nazareth', emoji: '🏘️' }, { label: 'Jerusalem', emoji: '🏛️' }, { label: 'Bethlehem', emoji: '⭐' }, { label: 'Cana', emoji: '🍷' }],
       correct: [2],
     },
     {

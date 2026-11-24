@@ -69,9 +69,9 @@
 
   const S = {
     wreath(m) {
-      if (m === 'ask') return `${stars(18, 3, 120)}${wreath()}${q(200, 110, 64)}`;
+      if (m === 'ask') return `${stars(18, 3, 120)}${wreath()}${q(200, 110, 64)}${[1, 2, 3, 4, 5, 6].map((n, i) => `<g transform="translate(${60 + i * 56},${i % 2 ? 150 : 62})"><text class="sc-label sc-float" ${d(i * 0.4)} font-size="28" dominant-baseline="central">${n}</text></g>`).join('')}`;
       return `${stars(18, 3, 120)}${wreath()}${XS.map((x, i) => `<g class="sc-rise" ${d(i * 0.7)}>${candle(x, 196, 74 - (i === 2 ? 0 : 0), COLORS[i], { lit: true, delay: i * 0.7 + 0.4 })}</g>`).join('')}
-        ${XS.map((x, i) => `<g transform="translate(${x},52)"><text class="sc-label sc-pop" ${d(i * 0.7 + 0.5)} font-size="26" dominant-baseline="central">${i + 1}</text></g>`).join('')}`;
+        ${XS.map((x, i) => `<g transform="translate(${x},52)"><text class="sc-label sc-pop" ${d(i * 0.7 + 0.5)} font-size="26" dominant-baseline="central">${i + 1}</text></g>`).join('')}${label(200, 244, 20, '4 Sundays of Advent', 3.2, 'sc-pop')}`;
     },
     'rose-candle'(m) {
       const third = m === 'ask'
@@ -92,8 +92,10 @@
       const words = [['Hope', '🙏'], ['Peace', '🕊️'], ['Joy', '😊'], ['Love', '❤️']];
       const xs = [98, 166, 234, 302];
       const w2 = wreath(200, 192, 150, 26);
-      if (m === 'ask') return `${stars(16, 11, 100)}${w2}${xs.map((x, i) => candle(x, 196, 70, COLORS[i]) + q(x, 84, 30)).join('')}`;
-      return `${stars(16, 11, 100)}${w2}${xs.map((x, i) => candle(x, 196, 70, COLORS[i], { lit: true, delay: i * 0.6 })).join('')}
+      const six = ['Joy', 'Charity', 'Hope', 'Kindness', 'Love', 'Peace'];
+      if (m === 'ask') return `${stars(16, 11, 100)}${w2}${xs.map((x, i) => candle(x, 196, 70, COLORS[i]) + q(x, 100, 26)).join('')}
+        ${six.map((w, i) => `<g transform="translate(${70 + (i % 3) * 130},${i < 3 ? 28 : 62})"><text class="sc-label sc-float" ${d(i * 0.5)} font-size="18">${w}</text></g>`).join('')}`;
+      return `${stars(16, 11, 100)}${w2}${label(40, 120, 15, 'Charity', 2.8, 'sc-away')}${label(360, 120, 15, 'Kindness', 3.0, 'sc-away')}${xs.map((x, i) => candle(x, 196, 70, COLORS[i], { lit: true, delay: i * 0.6 })).join('')}
         ${words.map(([w, e], i) => `<g class="sc-rise" ${d(i * 0.6 + 0.3)}>${emoji(xs[i], 60, 24, e)}<text class="sc-label" x="${xs[i]}" y="34" font-size="19">${w}</text></g>`).join('')}`;
     },
     vestment(m) {
@@ -113,8 +115,9 @@
         ${label(200, 236, 20, 'Say sorry · forgive · do good', 2)}`;
     },
     'two-comings'(m) {
-      if (m === 'ask') return `${stars(24, 19)}${emoji(200, 118, 70, '⏳', 'sc-flip')}${q(90, 110, 54)}${q(310, 110, 54)}`;
-      return `${stars(24, 19)}
+      if (m === 'ask') return `${stars(24, 19)}${emoji(200, 118, 70, '⏳', 'sc-flip')}${q(90, 110, 54)}${q(310, 110, 54)}
+        ${[['🎶', 150, 50], ['🍗', 250, 50], ['🎂', 150, 196], ['🛍️', 250, 196]].map(([e, x, y], i) => emoji(x, y, 28, e, 'sc-float', i * 0.5)).join('')}${label(200, 244, 16, 'Why do Christians celebrate?', 0)}`;
+      return `${stars(24, 19)}${[['🎶', 150, 50], ['🍗', 250, 50], ['🎂', 150, 196], ['🛍️', 250, 196]].map(([e, x, y], i) => emoji(x, y, 28, e, 'sc-away', i * 0.1)).join('')}
         <path d="M120 120 C170 70 230 70 280 120" stroke="#FFE27A" stroke-width="4" stroke-dasharray="1 12" stroke-linecap="round" fill="none" class="sc-dash"/>
         <g class="sc-rise">${emoji(90, 50, 26, '⭐', 'sc-twinkle')}${emoji(90, 118, 64, '👶')}${label(90, 186, 18, 'He came', 0.3)}${label(90, 208, 13, 'at Christmas', 0.5)}</g>
         <g class="sc-rise" ${d(1.1)}><circle cx="310" cy="112" r="50" fill="url(#scGlow)" class="sc-glow"/>${emoji(310, 108, 56, '👑', 'sc-float')}${emoji(274, 142, 34, '☁️')}${emoji(346, 142, 34, '☁️')}
@@ -134,9 +137,11 @@
         <rect x="-34" y="-36" width="30" height="36" fill="#1C1440"/><path d="M-38 -36 L-19 -54 L0 -36Z" fill="#1C1440"/>
         <rect x="0" y="-52" width="34" height="52" fill="#221A4D"/><circle cx="17" cy="-52" r="16" fill="#221A4D"/>
         <rect x="-26" y="-26" width="7" height="9" fill="${lit ? '#FFD966' : '#4B3F7A'}" class="${lit ? 'sc-twinkle' : ''}"/><rect x="12" y="-36" width="8" height="10" fill="${lit ? '#FFD966' : '#4B3F7A'}"/></g>`;
-      if (m === 'ask') return `${sky(21)}${dunes}${town(80, 0.8, false)}${town(200, 0.8, false)}${town(320, 0.8, false)}<g transform="translate(200,52)"><g class="sc-wander">${bigStar(18)}</g></g>`;
-      return `${sky(21)}${dunes}<polygon points="290,62 350,62 400,200 240,200" fill="url(#scBeam)" class="sc-fadein" ${d(1.8)}/>
-        ${town(80, 0.7, false)}${town(320, 1.15, true)}<g transform="translate(320,58)"><g class="sc-glide">${bigStar(24)}</g></g>${label(160, 120, 30, 'Bethlehem', 2, 'sc-pop')}${label(160, 146, 14, 'the city of King David', 2.3)}`;
+      const TX = [56, 152, 248, 344], NAMES = ['Nazareth', 'Jerusalem', 'Bethlehem', 'Cana'];
+      const names = (dim) => NAMES.map((n, i) => label(TX[i], 236, 15, n, 0, dim && i !== 2 ? 'sc-dim' : '')).join('');
+      if (m === 'ask') return `${sky(21)}${dunes}${TX.map((x) => town(x, 0.62, false)).join('')}${names(false)}<g transform="translate(200,52)"><g class="sc-wander">${bigStar(18)}</g></g>`;
+      return `${sky(21)}${dunes}<polygon points="222,62 274,62 312,200 184,200" fill="url(#scBeam)" class="sc-fadein" ${d(1.8)}/>
+        ${TX.map((x, i) => town(x, i === 2 ? 0.95 : 0.55, i === 2)).join('')}${names(true)}<g transform="translate(248,58)"><g class="sc-glide">${bigStar(22)}</g></g>${label(110, 110, 30, 'Bethlehem', 2, 'sc-pop')}${label(110, 136, 14, 'the city of King David', 2.3)}`;
     },
     manger(m) {
       const stable = `<path d="M60 92 L200 30 L340 92" stroke="#8B5A2B" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>

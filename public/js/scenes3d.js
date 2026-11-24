@@ -375,6 +375,10 @@ const SCENES = {
     const q = question(2); q.position.set(0, 2.6, 0); root.add(q);
     const nums = candles.map((c, i) => { const s = text(String(i + 1), { size: 0.9 }); s.position.copy(c.position).add(V(0, 3.4, 0)); root.add(s); return s; });
     const sp = sparkles(50, 0xFFE27A, [6, 4, 3]); root.add(sp);
+    // the six answers (1 to 6) float around the wreath while the groups think
+    const NUMC = ['#C4B5FD', '#BAE6FD', '#F9A8D4', '#FDE68A', '#FCA5A5', '#A7F3D0'];
+    const guesses = NUMC.map((col, i) => { const s = text(String(i + 1), { size: 1, color: col }); root.add(s); return s; });
+    const total = text('4 Sundays of Advent', { size: 0.85, color: '#FFE27A' }); total.position.set(0, 1.4, 0); root.add(total);
     return {
       root, camera: { pos: [0, 5.2, 8.2], target: [0, 1.2, 0] }, spin: mood === 'ask',
       update(t) {
@@ -382,9 +386,12 @@ const SCENES = {
         if (mood === 'ask') {
           candles.forEach((c) => { c.visible = false; });
           q.position.y = 2.6 + Math.sin(t * 2) * 0.2; q.material.rotation = Math.sin(t * 1.6) * 0.15;
-          nums.forEach((n) => (n.visible = false));
+          nums.forEach((n) => (n.visible = false)); total.visible = false;
+          guesses.forEach((g, i) => { const a = (i / 6) * Math.PI * 2; g.position.set(Math.cos(a) * 3.6, 1.4 + Math.sin(t * 2 + i) * 0.35, Math.sin(a) * 3.6); });
           root.rotation.y = t * 0.25;
         } else {
+          guesses.forEach((g) => (g.visible = false));
+          popScale(total, prog(t, 3.4, 0.6));
           q.visible = false;
           candles.forEach((c, i) => {
             const rise = easeOut(prog(t, i * 0.8, 0.6));
@@ -458,14 +465,29 @@ const SCENES = {
     const ring = wreath(4.1); ring.scale.set(1, 1, 0.42); root.add(ring);
     const words = [['Hope', '#C4B5FD'], ['Peace', '#BAE6FD'], ['Joy', '#F9A8D4'], ['Love', '#FCA5A5']];
     const cs = CANDLE_COLORS.map((col, i) => { const c = candle(col, 2.3); c.position.set(xs[i], 0.25, 0.3); root.add(c); return c; });
-    const qs = xs.map((x) => { const q = question(1); q.position.set(x, 3.6, 0.3); root.add(q); return q; });
+    const qs = xs.map((x) => { const q = question(0.8); q.position.set(x, 3.0, 0.3); root.add(q); return q; });
     const ws = words.map(([w, col], i) => { const s = text(w, { size: 0.85, color: col }); s.position.set(xs[i], 3.9, 0.3); root.add(s); return s; });
+    // the two other answers: good things, but not what the Advent candles stand for
+    const extra = [['Charity', '#FDBA74', -5.6], ['Kindness', '#A7F3D0', 5.6]].map(([w, col, x]) => { const s = text(w, { size: 0.75, color: col }); s.position.set(x, 3.2, 0.3); s.userData.x = x; root.add(s); return s; });
+    const all = [ws[0], extra[0], ws[1], extra[1], ws[2], ws[3]];   // drifting together while the groups think
+    const fact = text('Hope · Peace · Joy · Love', { size: 0.6, color: '#FFE27A' }); fact.position.set(0, -0.9, 1); root.add(fact);
     return {
       root, camera: { pos: [0, 3.6, 9.4], target: [0, 1.7, 0] },
       update(t) {
+        if (mood === 'ask') {
+          fact.visible = false;
+          all.forEach((s, i) => { s.visible = true; s.material.opacity = 1; s.position.set(((i % 3) - 1) * 3.4 + (i < 3 ? -0.8 : 0.8) + Math.sin(t * 0.7 + i) * 0.25, (i < 3 ? 4.5 : 3.75) + Math.sin(t * 1.2 + i * 2.1) * 0.15, 0.3); });
+        } else {
+          extra.forEach((s, i) => {                                 // fade up and away after the four candles light
+            const k = prog(t, 3.2 + i * 0.3, 1.6);
+            s.visible = k < 1; s.material.opacity = 1 - k;
+            s.position.set(s.userData.x * (1 + k * 0.3), 3.2 + k * 2.5, 0.3);
+          });
+          popScale(fact, prog(t, 3.4, 0.6));
+        }
         cs.forEach((c, i) => {
-          if (mood === 'ask') { c.userData.lit = 0; qs[i].position.y = 3.6 + Math.sin(t * 2 + i) * 0.15; ws[i].visible = false; }
-          else { qs[i].visible = false; c.userData.lit = easeOut(prog(t, i * 0.7, 0.5)); popScale(ws[i], prog(t, i * 0.7 + 0.3, 0.5)); ws[i].position.y = 3.9 + Math.sin(t * 1.5 + i) * 0.1; }
+          if (mood === 'ask') { c.userData.lit = 0; qs[i].position.y = 3.0 + Math.sin(t * 2 + i) * 0.15; }
+          else { qs[i].visible = false; c.userData.lit = easeOut(prog(t, i * 0.7, 0.5)); popScale(ws[i], prog(t, i * 0.7 + 0.3, 0.5)); ws[i].position.set(xs[i], 3.9 + Math.sin(t * 1.5 + i) * 0.1, 0.3); }
           c.userData.update(t);
         });
       },
@@ -560,17 +582,39 @@ const SCENES = {
     const caps = [1.25, -1.25].map((y) => at(M(new THREE.CylinderGeometry(0.95, 0.95, 0.15, 24), 0x8B5A2B), 0, y, 0));
     hour.add(top, bot, sand, ...caps);
     const qa = question(1.5), qb = question(1.5); qa.position.set(-3.6, 2, 0); qb.position.set(3.6, 2, 0); root.add(qa, qb);
+    // the other reasons on the list: carols, a festive meal, a birthday cake and a shopping bag
+    const others = new THREE.Group(); others.position.set(0, 2, 0); root.add(others);
+    const notes = text('♪♫', { size: 0.9, color: '#F9A8D4' });
+    const meal = new THREE.Group();
+    meal.add(at(M(new THREE.CylinderGeometry(0.6, 0.45, 0.1, 28), 0xF8FAFC, { outline: 0.03 }), 0, 0.05, 0));
+    const roast = M(new THREE.SphereGeometry(0.34, 16, 12), 0xC2652A, { outline: 0.03 }); roast.scale.set(1.2, 0.75, 0.9); roast.position.y = 0.3; meal.add(roast);
+    meal.add(at(M(new THREE.SphereGeometry(0.1, 8, 6), 0x16A34A, { outline: 0.02 }), 0.42, 0.16, 0.2));
+    meal.rotation.x = 0.5;
+    const cake = new THREE.Group();
+    cake.add(at(M(new THREE.CylinderGeometry(0.5, 0.5, 0.35, 24), 0xF9A8D4, { outline: 0.03 }), 0, 0.18, 0));
+    cake.add(at(M(new THREE.CylinderGeometry(0.36, 0.36, 0.3, 24), 0xFFF7ED, { outline: 0.03 }), 0, 0.5, 0));
+    cake.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), basic(0xFFB020, 2.4)), 0, 0.82, 0));
+    const bag = new THREE.Group();
+    bag.add(at(M(new THREE.BoxGeometry(0.7, 0.8, 0.35), 0x60A5FA, { outline: 0.03 }), 0, 0.4, 0));
+    bag.add(at(new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.04, 6, 16, Math.PI), toon(0x1E3A8A)), 0, 0.8, 0));
+    const ring = [notes, meal, cake, bag]; ring.forEach((o) => others.add(o));
+    const why = text('Why do Christians celebrate?', { size: 0.6, color: '#FFE27A' }); why.position.set(0, 4.4, 0); root.add(why);
     return {
       root, camera: { pos: [0, 2.4, 10.5], target: [0, 1.8, 0] },
       update(t) {
         const ask = mood === 'ask';
         [left, right, l1, l2, mid, path].forEach((o) => (o.visible = !ask));
-        hour.visible = ask; qa.visible = qb.visible = ask;
+        hour.visible = ask; qa.visible = qb.visible = ask; why.visible = ask;
         if (ask) {
           hour.rotation.z = Math.floor(t / 2.5) * Math.PI + easeOut(prog(t % 2.5, 2, 0.5)) * Math.PI;
           qa.position.y = 2 + Math.sin(t * 2) * 0.15; qb.position.y = 2 + Math.sin(t * 2 + 1) * 0.15;
+          others.visible = true; others.scale.setScalar(1);
+          ring.forEach((o, i) => { const a = t * 0.6 + (i / 4) * Math.PI * 2; o.position.set(Math.cos(a) * 2.7, Math.sin(a) * 1.5 - 0.2, 0.6); o.rotation.y = Math.sin(t + i) * 0.5; });
           return;
         }
+        const gone = prog(t, 0, 0.8);                              // the other reasons shrink away first
+        others.visible = gone < 1; others.scale.setScalar(Math.max(0.001, 1 - easeOut(gone)));
+        ring.forEach((o, i) => { const a = (i / 4) * Math.PI * 2; o.position.set(Math.cos(a) * 2.7, Math.sin(a) * 1.5 - 0.2, 0.6); });
         left.scale.setScalar(Math.max(0.001, backOut(prog(t, 0, 0.7))));
         right.scale.setScalar(Math.max(0.001, backOut(prog(t, 1, 0.7))));
         popScale(l1, prog(t, 0.4, 0.5)); popScale(l2, prog(t, 1.4, 0.5)); popScale(mid, prog(t, 2.2, 0.5));
@@ -619,23 +663,28 @@ const SCENES = {
   bethlehem(mood) {
     const root = new THREE.Group();
     root.add(dunes());
-    const towns = [-5.5, 0, 5.5].map((x, i) => { const tw = town(mood === 'reveal' && i === 2, i === 2 && mood === 'reveal' ? 1.15 : 0.9); tw.position.set(x, 0, -1); root.add(tw); return tw; });
+    // the four answers, in the same order as on the phones
+    const XS = [-6.3, -2.1, 2.1, 6.3], NAMES = ['Nazareth', 'Jerusalem', 'Bethlehem', 'Cana'], BX = XS[2];
+    const towns = XS.map((x, i) => { const hit = mood === 'reveal' && i === 2; const tw = town(hit, hit ? 1.0 : 0.72); tw.position.set(x, 0, -1); root.add(tw); return tw; });
+    const names = NAMES.map((n, i) => { const s = text(n, { size: 0.55, color: '#E9E3FF' }); s.position.set(XS[i], 2.7, 0); root.add(s); return s; });
     const star = bigStar(0.7); root.add(star);
-    const beam = new THREE.Mesh(new THREE.ConeGeometry(2.4, 6, 32, 1, true), new THREE.MeshBasicMaterial({ color: glowColor(0xFFE9A0, 1), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
-    beam.position.set(5.5, 3, -1); root.add(beam);
-    const lbl = text('Bethlehem', { size: 1.2 }); lbl.position.set(1.4, 4.2, 0); root.add(lbl);
-    const sub = text('the city of King David', { size: 0.5 }); sub.position.set(1.4, 3.3, 0); root.add(sub);
+    const beam = new THREE.Mesh(new THREE.ConeGeometry(2.0, 6, 32, 1, true), new THREE.MeshBasicMaterial({ color: glowColor(0xFFE9A0, 1), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+    beam.position.set(BX, 3, -1); root.add(beam);
+    const lbl = text('Bethlehem', { size: 1.2 }); lbl.position.set(-2.2, 4.6, 0); root.add(lbl);
+    const sub = text('the city of King David', { size: 0.5 }); sub.position.set(-2.2, 3.7, 0); root.add(sub);
     return {
-      root, camera: { pos: [0, 3.4, 12], target: [0, 2.4, 0] },
+      root, camera: { pos: [0, 3.4, 13.5], target: [0, 2.4, 0] },
       update(t) {
         star.userData.update(t);
         if (mood === 'ask') {
-          star.position.set(Math.sin(t * 0.6) * 5.5, 5.6 + Math.sin(t * 1.3) * 0.3, -1);   // wandering over every town
+          star.position.set(Math.sin(t * 0.6) * 6.3, 5.6 + Math.sin(t * 1.3) * 0.3, -1);   // wandering over every town
+          names.forEach((s, i) => (s.position.y = 2.7 + Math.sin(t * 2 + i) * 0.08));
           lbl.visible = sub.visible = false;
         } else {
           const k = easeOut(prog(t, 0, 2));
-          star.position.set(-5.5 + k * 11, 6.2 - k * 0.2, -1);
+          star.position.set(-6.3 + k * (BX + 6.3), 6.2 - k * 0.2, -1);
           beam.material.opacity = 0.22 * prog(t, 1.8, 1) * (0.8 + 0.2 * Math.sin(t * 2));
+          names.forEach((s, i) => { if (i === 2) s.visible = t < 2; else s.material.opacity = 1 - 0.6 * prog(t, 1.6, 0.8); });
           popScale(lbl, prog(t, 2, 0.5)); popScale(sub, prog(t, 2.3, 0.5));
         }
       },
