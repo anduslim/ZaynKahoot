@@ -208,3 +208,9 @@ html[data-style="kids"] .preview .pt, html[data-style="kids"] .preview .pq { col
 html[data-style="kids"] .preview .pres .pt { color: #fff; }
 html[data-style="kids"] .preview .sscene .scene svg { border-radius: 18px; border: 5px solid #fff; box-shadow: 0 6px 0 var(--k-shadow);
   background: linear-gradient(180deg, #5B32E0 0%, #4325B8 55%, #6A3BD8 100%); box-sizing: border-box; }
+html[data-style="kids"] .rest { background: #fff; color: var(--ink); box-shadow: 0 .6vh 0 var(--k-shadow); border: .3vh solid var(--k-line); }
+html[data-style="kids"] .rest b { background: #7B4DFF; color: #fff; }
+html[data-style="kids"] .rest .sc { color: #7B4DFF; }
+html[data-style="kids"] .preview .srest span { background: #fff; color: var(--ink); box-shadow: 0 3px 0 var(--k-shadow); border: 2px solid var(--k-line); }
+html[data-style="kids"] .preview .srest b { background: #7B4DFF; color: #fff; }
+html[data-style="kids"] .preview .sfinal h2, html[data-style="kids"] .preview .spod .nm { color: var(--ink); }

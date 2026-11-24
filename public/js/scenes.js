@@ -128,9 +128,10 @@
     visitation(m) {
       const hills = `<path d="M-40 200 Q80 150 200 190 T460 180 V280 H-40Z" fill="#2E7D4F"/><path d="M-40 222 Q120 196 260 222 T460 214 V280 H-40Z" fill="#256B42"/>`;
       const bg = `<rect x="-40" y="-40" width="480" height="320" fill="url(#scDay)"/>${emoji(60, 40, 30, '☀️', 'sc-spin-slow')}${hills}`;
-      // Mary faces right (mirrored), Elizabeth faces her: both are expecting, and baby John kicks inside Elizabeth
-      const mary = (x, y, size, cls = '') => `<g transform="translate(${x},${y}) scale(-1,1)"><text class="sc-emoji ${cls}" font-size="${size}">🤰</text></g>`;
-      if (m === 'ask') return `${bg}${emoji(330, 172, 70, '🏠')}${emoji(374, 196, 36, '🤰')}<g class="sc-walkin">${mary(0, 0, 44, 'sc-bob')}</g>`;
+      // Mary, and Elizabeth (expecting) facing her: baby John kicks inside Elizabeth
+      const mary = (x, y, size, cls = '') => emoji(x, y, size, '🧍‍♀️', cls);
+      const walker = (size) => `<g transform="scale(-1,1)"><text class="sc-emoji sc-bob" font-size="${size}">🚶‍♀️</text></g>`;   // walking right
+      if (m === 'ask') return `${bg}${emoji(330, 172, 70, '🏠')}${emoji(374, 196, 36, '🤰')}<g class="sc-walkin">${walker(44)}</g>`;
       return `${bg}${emoji(340, 180, 60, '🏠')}${mary(170, 190, 50, 'sc-lean-r')}${emoji(232, 190, 50, '🤰', 'sc-lean-l')}
         ${label(166, 234, 13, 'Mary', 0.2, '')}${label(236, 234, 13, 'Elizabeth', 0.2, '')}
         ${emoji(201, 146, 28, '❤️', 'sc-pop', 0.4)}<g transform="translate(222,199)"><circle r="16" fill="url(#scGlow)" class="sc-glow"/><text class="sc-emoji sc-kick" ${d(0.8)} font-size="15">👶</text></g>
