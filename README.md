@@ -34,6 +34,10 @@ After time is up, the projector shows every group's answer with a ✓ or ✕. **
 ### Question animations
 Each *Multiple choice* or *Typed answer* question can have an **animation on the big screen** (Admin → the question → *Animation on the big screen*). On the host it is a 3D scene (three.js, with glowing candles and stars); the preview simulator shows a lighter drawn version. It plays while groups answer without giving the answer away, then shows the answer at the reveal. The Advent set has one per question: the wreath, the rose candle, Gaudete, Hope/Peace/Joy/Love, the purple vestment, a heart getting ready, Jesus' two comings, the Visitation, Bethlehem, the manger, the Wise Men and their gifts. Scenes live in `public/js/scenes3d.js` (3D) and `public/js/scenes.js` (drawn).
 
+### Kids look
+
+Admin → Settings → **Look** switches the TV, the phones and the judging phone between **Classic** (deep purple, 3D animations) and **Kids** (bright, flat and rounded on a soft mint room, with the 2D question pictures). It changes straight away, even mid-game. The styles are in `public/css/kids.css`.
+
 ### Judging typed answers from your phone
 The TV is a shared screen, so it never shows a group's typed answer: it shows how many groups answered, then the answer, its animation and how many got it right. Each phone shows its own answer with the judge's reason. Open **/judge** on your phone to see every group's answer with the AI's verdict and reason, tap one to flip it, and press **Next**. On the host computer, **J** shows the answer cards on the TV if you need them.
 

@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex">
 <title>Quiz · Judge</title>
 <link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/kids.css">
 <style>
   body { background: var(--bg, #1B1446); color: #fff; margin: 0; font-family: var(--body); }
   .wrap { max-width: 640px; margin: 0 auto; padding: 14px 16px 110px; }
@@ -32,7 +33,7 @@
   #regrade { background: rgba(255,255,255,.15); color: #fff; }
 </style>
 </head>
-<body>
+<body class="judge">
 <div class="wrap" id="app"><p class="muted">Connecting…</p></div>
 <div class="bar"><button id="regrade" hidden>🤖 Ask the AI again</button><button id="next">Next ▸</button></div>
 <script src="/vendor/socket.io-client/socket.io.min.js"></script>

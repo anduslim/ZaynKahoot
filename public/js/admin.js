@@ -498,6 +498,14 @@
         </div>
       </div>
       <div class="card">
+        <h3>Look</h3>
+        <p class="muted">How the TV, the phones and your judging phone look. Switching takes effect straight away, even mid-game.</p>
+        <div class="looks">
+          ${[['classic', 'Classic', 'Deep purple with 3D question animations'], ['kids', 'Kids', 'Bright, flat and colourful, with 2D pictures']].map(([v, name, d]) => `<label class="look look-${v}"><input type="radio" name="look" data-path="style" value="${v}" ${(data.style || 'classic') === v ? 'checked' : ''}>
+            <span class="look-pic"><i></i><i></i><i></i><i></i></span><b>${name}</b><small>${d}</small></label>`).join('')}
+        </div>
+      </div>
+      <div class="card">
         <h3>Mini games</h3>
         <div class="grid3">
           ${field(`Grand Prix laps: <b data-show="games.raceLaps">${g.raceLaps}</b>`, `<input type="range" min="1" max="6" data-path="games.raceLaps" data-kind="int" value="${g.raceLaps}">`)}

@@ -16,6 +16,7 @@ let catchGame = null;
 let gameTitle = '';
 let picks = [];            // multiple choice: the answers tapped so far
 fetch('/config.json').then((r) => r.json()).then((c) => {
+  applyStyle(c.style);
   gameTitle = c.title; document.title = c.title;
   const h = document.querySelector('h1.brand'); if (h) h.innerHTML = brandHTML(c.title);
 }).catch(() => {});
@@ -98,7 +99,7 @@ function doJoin(pin) {
 
 socket.on('connect', () => { if (joined || (playerId && profile.name)) doJoin(params.get('pin')); });
 socket.on('kicked', () => { joined = false; LS.set('id', null); playerId = null; app.innerHTML = `<div class="center"><div class="big">You've been removed from the game</div><button class="cta" onclick="location.reload()">Join again</button></div>`; });
-socket.on('state', (st) => { S = st; if (st.title && st.title !== gameTitle) { gameTitle = st.title; document.title = st.title; } if (!joined) return; const k = st.phase + ':' + st.stepKind + ':' + (st.question?.index ?? '') + ':' + (st.mg?.type || ''); const changed = k !== key; key = k; render(st, changed); });
+socket.on('state', (st) => { S = st; applyStyle(st.style); if (st.title && st.title !== gameTitle) { gameTitle = st.title; document.title = st.title; } if (!joined) return; const k = st.phase + ':' + st.stepKind + ':' + (st.question?.index ?? '') + ':' + (st.mg?.type || ''); const changed = k !== key; key = k; render(st, changed); });
 socket.on('mgStatus', (s) => { mgStatus = s; updateRacePlace(); });
 
 // ------------------------------------------------------------- sensors

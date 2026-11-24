@@ -13,6 +13,7 @@ let token = 0;           // cancels async sequences on phase change
 let lastTick = -1;
 
 fetch('/config.json').then((r) => r.json()).then((c) => {
+  applyStyle(c.style);
   config = c;
   const h = document.querySelector('.splash .brand'); if (h) h.innerHTML = brandHTML(c.title);
   document.title = c.title + ' · Host';
@@ -39,7 +40,8 @@ socket.on('state', (st) => {
   const key = st.phase + ':' + st.step;
   const prev = S;
   S = st;
-  if (key !== phaseKey) { phaseKey = key; enter(st, prev); }
+  const restyled = applyStyle(st.style);         // the look changed in Admin: draw this screen again
+  if (key !== phaseKey || restyled) { phaseKey = key; enter(st, prev); }
   else update(st, prev);
   document.getElementById('ctl-phase').textContent = st.phase.replace('_', ' ');
   document.getElementById('ctl-pause').style.display = st.phase === 'answering' && st.timed ? '' : 'none';
@@ -88,7 +90,7 @@ function view(html) { stage.innerHTML = html; hydrateScenes(); return stage.firs
 // Question scenes: 3D (three.js) on the big screen; the drawn SVG version stays if WebGL is missing.
 function hydrateScenes() {
   const el = stage.querySelector('.scene-host');
-  if (!el) { stopScene(); return; }
+  if (!el || document.documentElement.dataset.style === 'kids') { stopScene(); return; }   // the kids look keeps the flat 2D drawings
   try { if (has3D(el.dataset.scene) && mountScene(el, el.dataset.scene, el.dataset.mood)) el.classList.add('is3d'); }
   catch (e) { console.warn('3D scene failed, using the drawn one', e); }
 }

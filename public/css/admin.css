@@ -199,3 +199,19 @@ code { background: rgba(255,255,255,.08); padding: 1px 6px; border-radius: 6px; 
 #aiResult .ai-checks { display: block; margin-top: 6px; font-size: .9em; color: var(--muted, #c9c3ef); line-height: 1.5; }
 #aiResult .ai-checks .ok { color: #8EF0A8; }
 #aiResult .ai-checks .bad { color: #FF9AA2; }
+
+/* Settings → Look */
+.looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.look { display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 16px; border: 3px solid transparent; background: rgba(255,255,255,.06); cursor: pointer; }
+.look:has(input:checked) { border-color: var(--yellow); }
+.look input { position: absolute; opacity: 0; pointer-events: none; }
+.look small { opacity: .75; }
+.look-pic { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 12px; border-radius: 12px; height: 92px; margin-bottom: 4px; }
+.look-pic i { border-radius: 8px; }
+.look-classic .look-pic { background: #1B1446; }
+.look-classic .look-pic i:nth-child(1) { background: #E5383B; } .look-classic .look-pic i:nth-child(2) { background: #3A86FF; }
+.look-classic .look-pic i:nth-child(3) { background: #C98F00; } .look-classic .look-pic i:nth-child(4) { background: #1E8E3E; }
+.look-kids .look-pic { background: linear-gradient(#C9F7E8, #FFE9F3); }
+.look-kids .look-pic i { border-radius: 12px; box-shadow: 0 4px 0 rgba(45,30,107,.2); border: 2px solid rgba(255,255,255,.6); }
+.look-kids .look-pic i:nth-child(1) { background: #FF5C8A; } .look-kids .look-pic i:nth-child(2) { background: #3BA8FF; }
+.look-kids .look-pic i:nth-child(3) { background: #FFA51F; } .look-kids .look-pic i:nth-child(4) { background: #22B573; }

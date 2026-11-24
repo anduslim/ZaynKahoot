@@ -58,7 +58,7 @@ const previewOnly = (req, res, next) => {
 app.get('/api/preview', previewOnly, (req, res) => {
   const c = pending || edited;
   res.json({
-    title: c.title, activeSet: c.activeSet, mode: c.mode, ai: judge.info().enabled,
+    title: c.title, style: c.style, activeSet: c.activeSet, mode: c.mode, ai: judge.info().enabled,
     sets: c.sets.map((x) => ({ id: x.id, name: x.name, title: x.title || c.title, points: x.points, timer: x.timer !== false, quizOnly: !!x.quizOnly, questions: x.questions })),
   });
 });
@@ -125,7 +125,10 @@ app.put('/api/admin/content', adminOnly, express.json({ limit: '1mb' }), (req, r
     applyContent(c);
     if (restart && game.phase !== 'lobby') resetGame(true);
     else broadcast();
-  } else pending = c;                                   // applied when the host resets / starts a new game
+  } else {
+    pending = c;                                        // applied when the host resets / starts a new game
+    if (content.style !== c.style) { content.style = c.style; broadcast(); }   // the look changes straight away
+  }
   res.json({ ok: true, applied: !pending, ...adminState() });
 });
 app.post('/api/admin/restore', adminOnly, (req, res) => {
@@ -168,6 +171,7 @@ app.get('/config.json', (req, res) => {
   const esc = (s) => s.replace(/([\\;,:"])/g, '\\$1');
   res.json({
     title: content.title,
+    style: content.style,
     wifiSsid: content.quizOnly ? '' : WIFI.ssid,
     wifiQr: WIFI.ssid && !content.quizOnly ? `WIFI:T:${WIFI.type};S:${esc(WIFI.ssid)};P:${esc(WIFI.password)};;` : '',
     publicUrl: process.env.PUBLIC_URL || '',
@@ -275,6 +279,7 @@ function hostView() {
   const counts = q ? q.options.map((_, i) => activePlayers().filter((p) => picked(p, i)).length) : [];
   return {
     title: content.title,
+    style: content.style,
     points: content.points,
     hideWifi: !!content.quizOnly,                  // quiz-only sets: no Wi-Fi QR in the lobby
     showRanks,
@@ -312,6 +317,7 @@ function playerView(p) {
   const showAnswer = SHOW_ANSWER.includes(game.phase);
   return {
     title: content.title,
+    style: content.style,
     showRanks,
     accepted: q?.type === 'text' && showAnswer ? q.answers : null,
     phase: game.phase,
