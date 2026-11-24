@@ -1,0 +1,168 @@
+/* Kids look (Admin → Settings → Look → Kids): bright, flat and rounded, on a soft mint room
+   with hanging stars and hearts. Only applies when <html data-style="kids">; the classic look is
+   untouched. The question pictures use the flat 2D drawings (js/scenes.js) instead of 3D. */
+
+html[data-style="kids"] {
+  --ink: #2D1E6B;
+  --panel: #FFFFFF;
+  --panel2: #F1EBFF;
+  --muted: #7C70B8;
+  --soft: #5B4F99;
+  --red: #FF4F7B;
+  --green: #22B573;
+  --blue: #3BA8FF;
+  --yellow: #FFC93C;
+  --o0: #FF5C8A;
+  --o1: #3BA8FF;
+  --o2: #FFA51F;
+  --o3: #22B573;
+  --o4: #9B6BFF;
+  --o5: #FF7A45;
+  --k-mint: #C9F7E8;
+  --k-sky: #B5ECFA;
+  --k-pink: #FF8FC4;
+  --k-lilac: #CDB8FF;
+  --k-shadow: rgba(45, 30, 107, .16);
+  --k-line: #E7E0FF;
+}
+html[data-style="kids"], html[data-style="kids"] body {
+  background: linear-gradient(180deg, var(--k-mint) 0%, #DDFBF1 62%, #FFE9F3 62.2%, #FFF4EC 100%);
+  color: var(--ink);
+}
+/* hanging stars and hearts along the top, a soft floor stripe along the bottom */
+html[data-style="kids"] body.host::before, html[data-style="kids"] body.play::before, html[data-style="kids"] body.judge::before {
+  content: ''; position: fixed; left: 0; right: 0; top: 0; height: 30vh; pointer-events: none; z-index: 0; opacity: .9;
+  background-repeat: repeat-x; background-size: auto 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='200' viewBox='0 0 560 200'%3E%3Cg stroke='%23ffffff' stroke-width='2.5' opacity='.9'%3E%3Cline x1='40' y1='0' x2='40' y2='70'/%3E%3Cline x1='150' y1='0' x2='150' y2='40'/%3E%3Cline x1='270' y1='0' x2='270' y2='95'/%3E%3Cline x1='390' y1='0' x2='390' y2='55'/%3E%3Cline x1='500' y1='0' x2='500' y2='85'/%3E%3C/g%3E%3Cpath d='M40 66 l7 14 16 2 -12 11 3 16 -14 -8 -14 8 3 -16 -12 -11 16 -2z' fill='%23FFE27A'/%3E%3Cpath d='M150 60 c-9 -14 -30 -4 -18 12 l18 16 18 -16 c12 -16 -9 -26 -18 -12z' fill='%23FF9CCB' transform='translate(0 -18)'/%3E%3Cpath d='M270 91 l7 14 16 2 -12 11 3 16 -14 -8 -14 8 3 -16 -12 -11 16 -2z' fill='%23CDB8FF'/%3E%3Cpath d='M390 68 c-9 -14 -30 -4 -18 12 l18 16 18 -16 c12 -16 -9 -26 -18 -12z' fill='%23A7F0D8' stroke='%23ffffff' stroke-width='3' transform='translate(0 -14)'/%3E%3Cpath d='M500 81 l7 14 16 2 -12 11 3 16 -14 -8 -14 8 3 -16 -12 -11 16 -2z' fill='%23FFB37A'/%3E%3C/svg%3E");
+}
+html[data-style="kids"] #stage, html[data-style="kids"] #app { position: relative; z-index: 1; }
+html[data-style="kids"] .host #stage { position: fixed; }
+
+/* ------------------------------------------------------------------ TV */
+html[data-style="kids"] .h-title { color: var(--ink); letter-spacing: 0; }
+html[data-style="kids"] .brand .z { color: #FF4F9A; }
+html[data-style="kids"] .brand .k { color: #7B4DFF; }
+html[data-style="kids"] .kicker { color: var(--muted); }
+html[data-style="kids"] .kicker .pick { color: #FF4F9A; }
+html[data-style="kids"] .big-btn, html[data-style="kids"] .small-btn { box-shadow: 0 .7vh 0 #E0A100; }
+html[data-style="kids"] .pin b { color: #7B4DFF; }
+html[data-style="kids"] .step, html[data-style="kids"] .brow, html[data-style="kids"] .ccard, html[data-style="kids"] .how,
+html[data-style="kids"] .sb-row, html[data-style="kids"] .srow {
+  background: #fff; color: var(--ink); box-shadow: 0 .8vh 0 var(--k-shadow); border: .35vh solid var(--k-line);
+}
+html[data-style="kids"] .step { border-radius: 4vh; }
+html[data-style="kids"] .step .n { color: #FF4F9A; }
+html[data-style="kids"] .step .d { color: var(--soft); }
+html[data-style="kids"] .step .d b { color: var(--ink); }
+html[data-style="kids"] .step img.qr { border: .4vh solid var(--k-line); }
+html[data-style="kids"] .players-head small { color: var(--muted); }
+html[data-style="kids"] .pchip .nm { color: var(--ink); }
+
+html[data-style="kids"] .intro .q, html[data-style="kids"] .qhead .q { color: var(--ink); }
+html[data-style="kids"] .qhead .q { background: #fff; border-radius: 3vh; padding: 1.6vh 2.4vw; box-shadow: 0 .8vh 0 var(--k-shadow); border: .35vh solid var(--k-line); }
+html[data-style="kids"] .hint { background: var(--yellow); color: var(--ink); border-radius: 999px; box-shadow: 0 .6vh 0 #E0A100; }
+html[data-style="kids"] .timer { background: #fff; border-radius: 50%; box-shadow: 0 .7vh 0 var(--k-shadow); }
+html[data-style="kids"] .timer b { color: var(--ink); }
+html[data-style="kids"] .answered { background: #fff; border-radius: 3vh; padding: 1vh 2vh; box-shadow: 0 .7vh 0 var(--k-shadow); }
+html[data-style="kids"] .answered b { color: #7B4DFF; }
+html[data-style="kids"] .answered span { color: var(--muted); }
+html[data-style="kids"] .rays { opacity: .5; }
+
+/* answers: bright flat tiles that look pressable */
+html[data-style="kids"] .opt { color: #fff; border-radius: 3vh; border: .45vh solid rgba(255,255,255,.55); box-shadow: 0 1vh 0 rgba(45,30,107,.22); text-shadow: 0 .25vh 0 rgba(0,0,0,.15); }
+html[data-style="kids"] .opt.right { border-color: #fff; box-shadow: 0 1vh 0 rgba(45,30,107,.22), 0 0 0 .8vh rgba(255,255,255,.9); }
+html[data-style="kids"] .opt.dim { opacity: .35; filter: saturate(.6); }
+html[data-style="kids"] .opt .bar { background: rgba(255,255,255,.85); }
+html[data-style="kids"] .multi-right .mr { color: #fff; box-shadow: 0 1vh 0 rgba(45,30,107,.2); }
+html[data-style="kids"] .fact { background: #fff; color: var(--ink); border: .4vh solid #8EE6C2; box-shadow: 0 .7vh 0 var(--k-shadow); }
+html[data-style="kids"] .feature .label-big { background: #fff; color: var(--ink); box-shadow: 0 .7vh 0 var(--k-shadow); }
+html[data-style="kids"] .bignum { color: #7B4DFF; text-shadow: 0 1vh 0 var(--k-shadow); }
+
+/* the question picture sits in a framed night-sky card, like a storybook page */
+html[data-style="kids"] .scene-host { padding: 1vh 0; }
+html[data-style="kids"] .scene svg { border-radius: 4vh; border: .8vh solid #fff; box-shadow: 0 1.2vh 0 var(--k-shadow);
+  background: linear-gradient(180deg, #5B32E0 0%, #4325B8 55%, #6A3BD8 100%); box-sizing: border-box; }
+
+/* typed answers */
+html[data-style="kids"] .tv-summary .big-line { color: var(--ink); }
+html[data-style="kids"] .tv-summary .right-count { background: #fff; color: var(--ink); box-shadow: 0 .7vh 0 var(--k-shadow); }
+html[data-style="kids"] .tv-summary .right-count.some { background: #DDFBEF; border-color: #22B573; }
+html[data-style="kids"] .accepted .acc { background: var(--green); color: #fff; box-shadow: 0 .5vh 0 rgba(0,0,0,.12); }
+html[data-style="kids"] .pill { background: #fff; color: var(--ink); box-shadow: 0 .4vh 0 var(--k-shadow); }
+html[data-style="kids"] .pill.ok { background: var(--green); color: #fff; }
+html[data-style="kids"] .pill.bad { background: var(--red); color: #fff; }
+html[data-style="kids"] .jcard { background: #fff; color: var(--ink); border-color: var(--k-line); box-shadow: 0 .8vh 0 var(--k-shadow); }
+html[data-style="kids"] .jcard.yes { background: #DDFBEF; border-color: #22B573; }
+html[data-style="kids"] .jcard.no { background: #FFE6EE; border-color: #FF6F9A; }
+html[data-style="kids"] .jcard .why { color: var(--soft); }
+html[data-style="kids"] .jcard .by { color: var(--muted); }
+
+/* scores */
+html[data-style="kids"] .sb-title { background: #7B4DFF; color: #fff; box-shadow: 0 .7vh 0 #5A2FD6; }
+html[data-style="kids"] .sb-row .rk, html[data-style="kids"] .brow .rk { color: var(--muted); }
+html[data-style="kids"] .sb-row .gn, html[data-style="kids"] .brow .gn { color: var(--green); }
+html[data-style="kids"] .sb-row .mv.up, html[data-style="kids"] .brow .mv.up { color: var(--green); }
+html[data-style="kids"] .sb-row .mv.down, html[data-style="kids"] .brow .mv.down { color: var(--red); }
+html[data-style="kids"] .sb-row.first { background: linear-gradient(90deg, #FFD54A, #FFB300); border-color: #FFE38A; }
+html[data-style="kids"] .sb-more { color: var(--muted); }
+html[data-style="kids"] .sb-streak { background: #fff; color: var(--ink); box-shadow: 0 .7vh 0 var(--k-shadow); }
+html[data-style="kids"] .sb-streak b { color: #FF4F9A; }
+html[data-style="kids"] .pod .blk { color: #fff; box-shadow: inset 0 -1vh 0 rgba(0,0,0,.12); }
+html[data-style="kids"] .pod .nm { color: var(--ink); }
+html[data-style="kids"] .pod .sc { color: var(--soft); }
+html[data-style="kids"] .countdown { color: #7B4DFF; text-shadow: 0 1.2vh 0 var(--k-shadow); }
+html[data-style="kids"] .standings { background: rgba(255,255,255,.94); color: var(--ink); }
+html[data-style="kids"] .srow.done, html[data-style="kids"] .ccard.caught { background: #DDFBEF; }
+html[data-style="kids"] #controls button, html[data-style="kids"] #controls .ctl-link { background: #fff; color: var(--ink); box-shadow: 0 .4vh 0 var(--k-shadow); }
+html[data-style="kids"] #controls button.primary { background: var(--yellow); }
+html[data-style="kids"] #controls button.off { background: var(--red); color: #fff; }
+html[data-style="kids"] #controls .ph { color: var(--muted); }
+html[data-style="kids"] #paused { background: rgba(201,247,232,.8); color: var(--ink); }
+
+/* ------------------------------------------------------------------ phones */
+html[data-style="kids"] .play h1.brand { text-shadow: 0 3px 0 #fff; }
+html[data-style="kids"] .play .lbl { color: var(--muted); }
+html[data-style="kids"] .play input.txt, html[data-style="kids"] .play .txt-answer { border: 3px solid var(--k-line); box-shadow: 0 4px 0 var(--k-shadow); }
+html[data-style="kids"] .play .cta { box-shadow: 0 6px 0 #E0A100; }
+html[data-style="kids"] .play .cta:active { transform: translateY(4px); box-shadow: 0 2px 0 #E0A100; }
+html[data-style="kids"] .play .ghost { background: #fff; border-color: var(--k-line); color: var(--soft); box-shadow: 0 4px 0 var(--k-shadow); }
+html[data-style="kids"] .play .sub { color: var(--soft); }
+html[data-style="kids"] .play .me-bar, html[data-style="kids"] .play .my-answer { background: #fff; color: var(--ink); box-shadow: 0 5px 0 var(--k-shadow); border: 2px solid var(--k-line); }
+html[data-style="kids"] .play .me-bar .sc { color: #7B4DFF; }
+html[data-style="kids"] .play .qtxt { background: #fff; border-radius: 20px; padding: 12px 14px; box-shadow: 0 5px 0 var(--k-shadow); border: 2px solid var(--k-line); }
+html[data-style="kids"] .play .pad button { color: #fff; border-radius: 26px; border: 3px solid rgba(255,255,255,.55); box-shadow: 0 7px 0 rgba(45,30,107,.22); text-shadow: 0 2px 0 rgba(0,0,0,.15); }
+html[data-style="kids"] .play .pad button:active { transform: translateY(4px); box-shadow: 0 3px 0 rgba(45,30,107,.22); }
+html[data-style="kids"] .play .pad button.picked { outline-color: #fff; box-shadow: 0 7px 0 rgba(45,30,107,.22), 0 0 0 5px var(--ink); }
+html[data-style="kids"] .play .pad.pk button { background: #fff; color: var(--ink); text-shadow: none; }
+html[data-style="kids"] .play .chip, html[data-style="kids"] .play .tile { background: #fff; color: var(--ink); box-shadow: 0 4px 0 var(--k-shadow); }
+html[data-style="kids"] .play .chip.on, html[data-style="kids"] .play .tile.on { border-color: #7B4DFF; background: var(--panel2); }
+html[data-style="kids"] .play .sw.on { border-color: var(--ink); }
+html[data-style="kids"] .play .tabs { background: #fff; box-shadow: 0 4px 0 var(--k-shadow); }
+html[data-style="kids"] .play .tabs button { color: var(--muted); }
+html[data-style="kids"] .play .tabs button.on { background: #7B4DFF; color: #fff; box-shadow: 0 3px 0 #5A2FD6; }
+html[data-style="kids"] .play .combo { color: var(--muted); }
+html[data-style="kids"] .play .av-name, html[data-style="kids"] .play .group-name { color: #7B4DFF; }
+html[data-style="kids"] .play .result { color: #fff; box-shadow: 0 8px 0 rgba(45,30,107,.2); border: 4px solid rgba(255,255,255,.6); }
+html[data-style="kids"] .play .result .why { background: rgba(255,255,255,.22); }
+html[data-style="kids"] .play .rank-line, html[data-style="kids"] .play .big { color: var(--ink); }
+html[data-style="kids"] .play .result .big { color: #fff; }
+html[data-style="kids"] .play .place { color: #7B4DFF; }
+html[data-style="kids"] .play .wheel { background: #fff; border-color: #7B4DFF; }
+html[data-style="kids"] .play .steer-btns button { background: #fff; color: var(--ink); box-shadow: 0 5px 0 var(--k-shadow); }
+html[data-style="kids"] .play .steer-btns button.on { background: var(--yellow); }
+html[data-style="kids"] .play .err { color: #E11D48; }
+
+/* ------------------------------------------------------------------ host's phone (/judge) */
+html[data-style="kids"] body.judge { color: var(--ink); }
+html[data-style="kids"] body.judge .muted { color: var(--soft); }
+html[data-style="kids"] body.judge .ph, html[data-style="kids"] body.judge .pill { background: #fff; color: var(--ink); box-shadow: 0 3px 0 var(--k-shadow); }
+html[data-style="kids"] body.judge .pill.ok { background: var(--green); color: #fff; }
+html[data-style="kids"] body.judge .pill.bad { background: var(--red); color: #fff; }
+html[data-style="kids"] body.judge .pill.warn { background: var(--yellow); color: var(--ink); }
+html[data-style="kids"] body.judge .acc { background: var(--green); color: #fff; }
+html[data-style="kids"] body.judge .card { background: #fff; color: var(--ink); border-color: var(--k-line); box-shadow: 0 5px 0 var(--k-shadow); }
+html[data-style="kids"] body.judge .card.yes { background: #DDFBEF; border-color: #22B573; }
+html[data-style="kids"] body.judge .card.no { background: #FFE6EE; border-color: #FF6F9A; }
+html[data-style="kids"] body.judge .bar { background: rgba(255,255,255,.95); box-shadow: 0 -4px 0 var(--k-shadow); }
+html[data-style="kids"] body.judge #next { box-shadow: 0 5px 0 #E0A100; }
+html[data-style="kids"] body.judge #regrade { background: #F1EBFF; color: var(--ink); }

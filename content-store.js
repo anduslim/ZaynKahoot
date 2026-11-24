@@ -219,7 +219,8 @@ function sanitize(c) {
     minigameBonus: bonus.length ? bonus : [600, 500, 400, 320, 260, 220, 190, 170, 150, 130],
     minigameParticipation: int(c.minigameParticipation, 0, 5000, 100),
     raceMultiplier: num(c.raceMultiplier, 0.5, 5, 1.5),
-    showRankings: c.showRankings !== false,                           // scoreboard after each question
+    showRankings: c.showRankings !== false,
+    style: c.style === 'kids' ? 'kids' : 'classic',                  // the look on the TV and phones                           // scoreboard after each question
     games: {
       raceLaps: int(c.games?.raceLaps, 1, 6, GAME_DEFAULTS.raceLaps),
       climbSeconds: int(c.games?.climbSeconds, 30, 240, GAME_DEFAULTS.climbSeconds),

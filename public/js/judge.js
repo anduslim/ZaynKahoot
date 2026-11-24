@@ -5,7 +5,7 @@
   const socket = io();
   let st = null;
   socket.on('connect', () => socket.emit('host:hello'));
-  socket.on('state', (s) => { st = s; draw(); });
+  socket.on('state', (s) => { st = s; applyStyle(s.style); draw(); });
   document.getElementById('next').onclick = () => socket.emit('host:advance');
   document.getElementById('regrade').onclick = () => socket.emit('host:regrade');
 

@@ -1,4 +1,14 @@
 // Shared helpers for host + phone
+
+// The look (Admin → Settings → Look): 'classic' or 'kids'. Remembered so the next page load starts in it.
+function applyStyle(style) {
+  const v = style === 'kids' ? 'kids' : 'classic';
+  if (document.documentElement.dataset.style === v) return false;
+  document.documentElement.dataset.style = v;
+  try { localStorage.setItem('quiz_style', v); } catch (e) {}
+  return true;
+}
+try { applyStyle(localStorage.getItem('quiz_style')); } catch (e) { applyStyle('classic'); }
 const OPT_COLORS = ['var(--o0)', 'var(--o1)', 'var(--o2)', 'var(--o3)', 'var(--o4)', 'var(--o5)'];
 const OPT_SHAPES = [
   '<svg viewBox="0 0 34 34"><path d="M17 3 L31 30 L3 30 Z" fill="#fff"/></svg>',
