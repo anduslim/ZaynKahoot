@@ -127,3 +127,15 @@ a { color: var(--yellow); }
   .sopt .shape { display: none; }
   .sopt .em { width: 28px; font-size: 24px; }
 }
+
+/* simulator final screen: podium and the rest of the ranking */
+.sfinal { gap: 12px; align-content: center; }
+.spodium { display: flex; align-items: flex-end; justify-content: center; gap: 12px; }
+.spod { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 120px; }
+.spod .nm { font-family: var(--display); font-weight: 700; font-size: 16px; text-align: center; }
+.spod .sc { font-weight: 800; font-size: 13px; color: var(--soft); }
+.spod .blk { width: 100%; border-radius: 12px 12px 0 0; display: grid; place-items: center; font-family: var(--display); font-size: 34px; font-weight: 700; color: var(--ink); }
+.spod.p1 .blk { height: 120px; background: var(--yellow); } .spod.p2 .blk { height: 86px; background: #C0C6D8; } .spod.p3 .blk { height: 64px; background: #D08A4E; }
+.srest { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.srest span { background: var(--panel); border-radius: 999px; padding: 4px 14px 4px 4px; font-family: var(--display); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.srest b { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--panel2); color: var(--yellow); font-size: 14px; }

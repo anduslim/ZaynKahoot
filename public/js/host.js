@@ -592,15 +592,15 @@ async function finale(st) {
   Sound.play('drumroll');
   const top = st.players.slice(0, 3);
   const order = [1, 0, 2].filter((i) => top[i]);
-  const H = { 0: 34, 1: 24, 2: 17 }; const C = { 0: 'var(--yellow)', 1: '#C0C6D8', 2: '#D08A4E' };
+  const k = st.players.length > 7 ? 0.62 : st.players.length > 3 ? 0.8 : 1;   // shorter podium leaves room for everyone else
+  const H = { 0: 34 * k, 1: 24 * k, 2: 17 * k }; const C = { 0: 'var(--yellow)', 1: '#C0C6D8', 2: '#D08A4E' };
   view(`<div class="screen">
     <h1 class="h-title brand" style="text-align:center;font-size:8vh">🏆 ${brandHTML(title())} Champions</h1>
     <div class="podium">${order.map((i) => { const p = top[i]; return `
       <div class="pod" style="animation-delay:${(2 - i) * 1.1 + 0.4}s">
         ${avatarHTML(p.avatar, i === 0 ? 130 : 100)}<span class="nm">${esc(p.name)}</span><span class="sc">${p.score} pts</span>
         <div class="blk" style="height:${H[i]}vh;background:${C[i]};color:var(--ink)">${i + 1}</div></div>`; }).join('')}</div>
-    <div style="display:flex;flex-wrap:wrap;gap:1vh 2vw;justify-content:center;color:var(--soft);font-weight:800;font-size:2.2vh">
-      ${st.players.slice(3).map((p, i) => `<span>${i + 4}. ${esc(p.name)} · ${p.score}</span>`).join('')}</div>
+    ${st.players.length > 3 ? `<div class="rest-list">${st.players.slice(3).map((p, i) => `<span class="rest" style="animation-delay:${4 + i * 0.12}s"><b>${i + 4}</b>${avatarHTML(p.avatar, 34)}<span class="nm">${esc(p.name)}</span><span class="sc">${p.score}</span></span>`).join('')}</div>` : ''}
   </div>`);
   for (const i of [2, 1, 0]) { await sleep(1100); if (t !== token) return; if (top[i]) Sound.play(i === 0 ? 'cheer' : 'pop'); }
   Sound.music('final');

@@ -177,7 +177,15 @@
     const scene = (qq, mood) => (qq.scene && window.Scenes ? Scenes.html(qq.scene, mood) : '');
     function stage() {
       const qq = q();
-      if (phase === 'final') return `<div class="sfinal"><div class="big">🏆</div><h2>${esc(set.title)}</h2><p>${right} of ${qs.length} right · <b>${score} point${score === 1 ? '' : 's'}</b></p></div>`;
+      if (phase === 'final') {
+        // the TV's final screen: the top 3 on a podium, then every other group in order (other groups are made-up examples)
+        const pts = (k) => Math.max(0, score - k * set.points);
+        const groups = [['Your group', score], ['The Shepherds', pts(1)], ['The Angels', pts(2)], ['Little Stars', pts(3)], ['The Wise Ones', pts(4)]];
+        const pod = [1, 0, 2].map((k) => `<div class="spod p${k + 1}"><span class="nm">${esc(groups[k][0])}</span><span class="sc">${groups[k][1]} pts</span><div class="blk">${k + 1}</div></div>`).join('');
+        return `<div class="sfinal"><h2>🏆 ${esc(set.title)} Champions</h2><div class="spodium">${pod}</div>
+          <div class="srest">${groups.slice(3).map(([n, sc], k) => `<span><b>${k + 4}</b>${esc(n)} · ${sc}</span>`).join('')}</div>
+          <p class="small muted">You got ${right} of ${qs.length} right. On the TV every group is ranked like this (the other groups here are examples).</p></div>`;
+      }
       const head = `<div class="shead">${set.timer && phase === 'question' ? `<b class="stimer" id="stime">${qq.timeLimit}</b>` : ''}<div><div class="kick">Question ${i + 1} of ${qs.length}${qq.pick > 1 ? ` · <span>Pick ${qq.pick}</span>` : ''}${qq.type === 'text' ? ' · <span>Type your answer</span>' : ''}</div><h2>${esc(qq.text)}</h2></div></div>`;
       if (qq.type === 'text') {
         const acc = phase === 'reveal' || phase === 'judging' ? `<div class="sacc"><span class="lbl">The answer</span>${(qq.answers || []).map((a) => `<span class="acc">${esc(a.split('/').slice(0, 3).join(' / '))}</span>`).join('')}</div>` : '';
