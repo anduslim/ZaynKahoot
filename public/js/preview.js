@@ -14,6 +14,7 @@
     const res = await fetch('/api/preview', { headers: key ? { 'x-preview-key': key } : {} });
     if (res.status === 401) return askKey();
     data = await res.json();
+    applyStyle(data.style);                    // show the look picked in Admin → Settings → Look
     if (key) sessionStorage.setItem('zk_preview', key);
     if (slug) {
       const k = data.sets.findIndex((s) => s.id === slug);
