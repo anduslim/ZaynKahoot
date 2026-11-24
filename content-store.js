@@ -159,6 +159,23 @@ function sanitize(c) {
     addedBuiltins.push(b.id);
     if (!setIds.has(b.id)) { b.questions.forEach((q) => { q.enabled = true; }); sets.push(cleanSet(b, sets.length, qids)); setIds.add(b.id); }
   }
+  // A built-in question changed in its file (its `rev` went up): update the saved copy of it,
+  // keeping whether it is switched on. Each revision is applied once, so later Admin edits stay.
+  const builtinRevs = {};
+  const savedRevs = c.builtinRevs && typeof c.builtinRevs === 'object' ? c.builtinRevs : {};
+  for (const b of BUILTIN_SETS()) {
+    for (const bq of b.questions) {
+      const rev = int(bq?.rev, 1, 9999, 1);
+      if (!bq?.id || rev < 2) continue;
+      const id = str(bq.id, 40);
+      builtinRevs[id] = rev;
+      if (int(savedRevs[id], 1, 9999, 1) >= rev) continue;
+      for (const set of sets) {
+        const i = set.questions.findIndex((q) => q.id === id);
+        if (i >= 0) set.questions[i] = { ...cleanQuestion({ ...bq }), enabled: set.questions[i].enabled };
+      }
+    }
+  }
   const active = sets.find((x) => x.id === c.activeSet) || sets[0];
   const questions = active.questions;                                   // the set being played
   const allQuestions = sets.flatMap((x) => x.questions);                // pictures can come from any set
@@ -197,6 +214,7 @@ function sanitize(c) {
     sets,
     activeSet: active.id,
     addedBuiltins,
+    builtinRevs,
     finale,
     minigameBonus: bonus.length ? bonus : [600, 500, 400, 320, 260, 220, 190, 170, 150, 130],
     minigameParticipation: int(c.minigameParticipation, 0, 5000, 100),

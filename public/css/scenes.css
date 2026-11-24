@@ -90,3 +90,7 @@
 @media (prefers-reduced-motion: reduce) {
   .scene svg * { animation-duration: .01s !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; }
 }
+/* an answer that is not right drifts up and fades away */
+.sc-away { animation: scAway 1.6s ease-in forwards; animation-delay: var(--d, 0s); }
+@keyframes scAway { 0% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-40px) scale(.7); } }
+.sc-dim { opacity: .45; }
