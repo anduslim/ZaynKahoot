@@ -110,3 +110,20 @@ a { color: var(--yellow); }
 .sscene { flex: 1; min-height: 180px; max-height: 340px; display: flex; }
 .sscene .scene svg { border-radius: 14px; }
 .sstage .sres { align-self: center; }
+
+/* simulator picture: sized by its width so it never collapses (Safari) */
+.sscene { display: block; min-height: 0; max-height: none; }
+.sscene .scene { height: auto; display: block; }
+.sscene .scene svg { display: block; width: 100%; max-width: 560px; height: auto; margin: 0 auto; }
+/* long answers wrap inside their tile instead of pushing past the card */
+.sopts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sopt { min-width: 0; overflow-wrap: break-word; line-height: 1.15; }
+.sopt > span:last-child { min-width: 0; flex: 1; }
+/* every tile lines up: the shape and the emoji take the same width, so labels start in one column */
+.sopt .em { width: 34px; flex: none; text-align: center; }
+.sopt img { flex: none; }
+@media (max-width: 520px) {
+  .sopt { gap: 8px; padding: 8px 10px; font-size: 15px; }
+  .sopt .shape { display: none; }
+  .sopt .em { width: 28px; font-size: 24px; }
+}

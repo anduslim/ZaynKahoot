@@ -71,7 +71,7 @@
     wreath(m) {
       if (m === 'ask') return `${stars(18, 3, 120)}${wreath()}${q(200, 110, 64)}${[1, 2, 3, 4, 5, 6].map((n, i) => `<g transform="translate(${60 + i * 56},${i % 2 ? 150 : 62})"><text class="sc-label sc-float" ${d(i * 0.4)} font-size="28" dominant-baseline="central">${n}</text></g>`).join('')}`;
       return `${stars(18, 3, 120)}${wreath()}${XS.map((x, i) => `<g class="sc-rise" ${d(i * 0.7)}>${candle(x, 196, 74 - (i === 2 ? 0 : 0), COLORS[i], { lit: true, delay: i * 0.7 + 0.4 })}</g>`).join('')}
-        ${XS.map((x, i) => `<g transform="translate(${x},52)"><text class="sc-label sc-pop" ${d(i * 0.7 + 0.5)} font-size="26" dominant-baseline="central">${i + 1}</text></g>`).join('')}${label(200, 244, 20, '4 Sundays of Advent', 3.2, 'sc-pop')}`;
+        ${XS.map((x, i) => `<g transform="translate(${x},52)"><text class="sc-label sc-pop" ${d(i * 0.7 + 0.5)} font-size="26" dominant-baseline="central">${i + 1}</text></g>`).join('')}${label(200, 232, 20, '4 Sundays of Advent', 3.2, 'sc-pop')}`;
     },
     'rose-candle'(m) {
       const third = m === 'ask'
@@ -115,9 +115,10 @@
         ${label(200, 236, 20, 'Say sorry · forgive · do good', 2)}`;
     },
     'two-comings'(m) {
-      if (m === 'ask') return `${stars(24, 19)}${emoji(200, 118, 70, '⏳', 'sc-flip')}${q(90, 110, 54)}${q(310, 110, 54)}
-        ${[['🎶', 150, 50], ['🍗', 250, 50], ['🎂', 150, 196], ['🛍️', 250, 196]].map(([e, x, y], i) => emoji(x, y, 28, e, 'sc-float', i * 0.5)).join('')}${label(200, 244, 16, 'Why do Christians celebrate?', 0)}`;
-      return `${stars(24, 19)}${[['🎶', 150, 50], ['🍗', 250, 50], ['🎂', 150, 196], ['🛍️', 250, 196]].map(([e, x, y], i) => emoji(x, y, 28, e, 'sc-away', i * 0.1)).join('')}
+      // the other reasons on the list sit in a neat row along the bottom
+      const others = (cls) => [['🎶', 110], ['🍗', 170], ['🎂', 230], ['🛍️', 290]].map(([e, x], i) => emoji(x, 204, 26, e, cls, cls === 'sc-float' ? i * 0.5 : i * 0.1)).join('');
+      if (m === 'ask') return `${stars(24, 19)}${label(200, 34, 18, 'Why do Christians celebrate?', 0, '')}${q(112, 116, 50)}${emoji(200, 116, 66, '⏳', 'sc-flip')}${q(288, 116, 50)}${others('sc-float')}`;
+      return `${stars(24, 19)}${others('sc-away')}
         <path d="M120 120 C170 70 230 70 280 120" stroke="#FFE27A" stroke-width="4" stroke-dasharray="1 12" stroke-linecap="round" fill="none" class="sc-dash"/>
         <g class="sc-rise">${emoji(90, 50, 26, '⭐', 'sc-twinkle')}${emoji(90, 118, 64, '👶')}${label(90, 186, 18, 'He came', 0.3)}${label(90, 208, 13, 'at Christmas', 0.5)}</g>
         <g class="sc-rise" ${d(1.1)}><circle cx="310" cy="112" r="50" fill="url(#scGlow)" class="sc-glow"/>${emoji(310, 108, 56, '👑', 'sc-float')}${emoji(274, 142, 34, '☁️')}${emoji(346, 142, 34, '☁️')}
@@ -127,9 +128,12 @@
     visitation(m) {
       const hills = `<path d="M-40 200 Q80 150 200 190 T460 180 V280 H-40Z" fill="#2E7D4F"/><path d="M-40 222 Q120 196 260 222 T460 214 V280 H-40Z" fill="#256B42"/>`;
       const bg = `<rect x="-40" y="-40" width="480" height="320" fill="url(#scDay)"/>${emoji(60, 40, 30, '☀️', 'sc-spin-slow')}${hills}`;
-      if (m === 'ask') return `${bg}${emoji(330, 170, 70, '🏠')}${emoji(372, 196, 34, '👵')}<g class="sc-walkin">${emoji(0, 0, 44, '🤰', 'sc-bob')}</g>`;
-      return `${bg}${emoji(340, 166, 60, '🏠')}${emoji(176, 190, 50, '🤰', 'sc-lean-r')}${emoji(226, 190, 50, '👵', 'sc-lean-l')}
-        ${emoji(201, 150, 28, '❤️', 'sc-pop', 0.4)}<g transform="translate(226,140)"><text class="sc-emoji sc-leap" ${d(0.8)} font-size="30">👶</text></g>
+      // Mary faces right (mirrored), Elizabeth faces her: both are expecting, and baby John kicks inside Elizabeth
+      const mary = (x, y, size, cls = '') => `<g transform="translate(${x},${y}) scale(-1,1)"><text class="sc-emoji ${cls}" font-size="${size}">🤰</text></g>`;
+      if (m === 'ask') return `${bg}${emoji(330, 172, 70, '🏠')}${emoji(374, 196, 36, '🤰')}<g class="sc-walkin">${mary(0, 0, 44, 'sc-bob')}</g>`;
+      return `${bg}${emoji(340, 180, 60, '🏠')}${mary(170, 190, 50, 'sc-lean-r')}${emoji(232, 190, 50, '🤰', 'sc-lean-l')}
+        ${label(166, 234, 13, 'Mary', 0.2, '')}${label(236, 234, 13, 'Elizabeth', 0.2, '')}
+        ${emoji(201, 146, 28, '❤️', 'sc-pop', 0.4)}<g transform="translate(222,199)"><circle r="16" fill="url(#scGlow)" class="sc-glow"/><text class="sc-emoji sc-kick" ${d(0.8)} font-size="15">👶</text></g>
         ${emoji(256, 104, 18, '✨', 'sc-pop', 1.0)}${emoji(196, 98, 16, '✨', 'sc-pop', 1.2)}${label(200, 40, 24, 'Baby John leapt for joy!', 1.2, 'sc-pop')}`;
     },
     bethlehem(m) {
@@ -137,8 +141,8 @@
         <rect x="-34" y="-36" width="30" height="36" fill="#1C1440"/><path d="M-38 -36 L-19 -54 L0 -36Z" fill="#1C1440"/>
         <rect x="0" y="-52" width="34" height="52" fill="#221A4D"/><circle cx="17" cy="-52" r="16" fill="#221A4D"/>
         <rect x="-26" y="-26" width="7" height="9" fill="${lit ? '#FFD966' : '#4B3F7A'}" class="${lit ? 'sc-twinkle' : ''}"/><rect x="12" y="-36" width="8" height="10" fill="${lit ? '#FFD966' : '#4B3F7A'}"/></g>`;
-      const TX = [56, 152, 248, 344], NAMES = ['Nazareth', 'Jerusalem', 'Bethlehem', 'Cana'];
-      const names = (dim) => NAMES.map((n, i) => label(TX[i], 236, 15, n, 0, dim && i !== 2 ? 'sc-dim' : '')).join('');
+      const TX = [66, 156, 246, 334], NAMES = ['Nazareth', 'Jerusalem', 'Bethlehem', 'Cana'];
+      const names = (dim) => NAMES.map((n, i) => label(TX[i], 232, 14, n, 0, dim && i !== 2 ? 'sc-dim' : '')).join('');
       if (m === 'ask') return `${sky(21)}${dunes}${TX.map((x) => town(x, 0.62, false)).join('')}${names(false)}<g transform="translate(200,52)"><g class="sc-wander">${bigStar(18)}</g></g>`;
       return `${sky(21)}${dunes}<polygon points="222,62 274,62 312,200 184,200" fill="url(#scBeam)" class="sc-fadein" ${d(1.8)}/>
         ${TX.map((x, i) => town(x, i === 2 ? 0.95 : 0.55, i === 2)).join('')}${names(true)}<g transform="translate(248,58)"><g class="sc-glide">${bigStar(22)}</g></g>${label(110, 110, 30, 'Bethlehem', 2, 'sc-pop')}${label(110, 136, 14, 'the city of King David', 2.3)}`;
@@ -148,9 +152,9 @@
         <rect x="76" y="92" width="10" height="120" fill="#8B5A2B"/><rect x="314" y="92" width="10" height="120" fill="#8B5A2B"/><path d="M-40 212 H440 V280 H-40Z" fill="#5B3A1E"/>`;
       const trough = `<path d="M150 170 L250 170 L238 200 L162 200Z" fill="#A0703F" stroke="#6B4423" stroke-width="3"/><path d="M164 200 L150 214 M236 200 L250 214" stroke="#6B4423" stroke-width="5" stroke-linecap="round"/>`;
       const hay = Array.from({ length: 9 }, (_, i) => `<path d="M${158 + i * 10} 172 l${i % 2 ? 6 : -6} -14" stroke="#F2C94C" stroke-width="3" stroke-linecap="round"/>`).join('');
-      if (m === 'ask') return `${stars(14, 23, 70)}${stable}${trough}${q(200, 132, 46)}${emoji(110, 186, 40, '🐑', 'sc-float')}${emoji(290, 178, 52, '🐄', 'sc-float', 0.7)}${emoji(340, 186, 36, '🐴', 'sc-float', 1.2)}`;
+      if (m === 'ask') return `${stars(14, 23, 70)}${stable}${trough}${q(200, 132, 46)}${emoji(104, 190, 50, '🐑')}${emoji(286, 182, 64, '🐄')}${emoji(346, 192, 44, '🐴')}`;
       return `${stars(14, 23, 70)}<g transform="translate(200,26)">${bigStar(14)}</g>${stable}<g class="sc-rise" ${d(0.2)}>${hay}</g>${trough}
-        <g transform="translate(262,160)"><g class="sc-munch" ${d(0.6)}><text class="sc-emoji" font-size="52">🐄</text></g></g>${emoji(110, 186, 40, '🐑', 'sc-float')}
+        <g transform="translate(276,182)"><text class="sc-emoji sc-munch" ${d(0.6)} font-size="64">🐄</text></g>${emoji(104, 190, 50, '🐑')}
         <g class="sc-fadein" ${d(2)}><circle cx="200" cy="160" r="40" fill="url(#scGlow)" class="sc-glow"/><ellipse cx="200" cy="140" rx="15" ry="5" fill="none" stroke="#FFE27A" stroke-width="3"/>${emoji(200, 162, 30, '👶')}</g>
         ${label(200, 236, 18, 'A feeding box for the animals', 0.8)}`;
     },

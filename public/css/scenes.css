@@ -94,3 +94,8 @@
 .sc-away { animation: scAway 1.6s ease-in forwards; animation-delay: var(--d, 0s); }
 @keyframes scAway { 0% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-40px) scale(.7); } }
 .sc-dim { opacity: .45; }
+/* emoji and "?" sit centred on their own origin: turn and grow them about it (Safari mis-measures
+   emoji for fill-box, which threw the spinning hourglass across the picture) */
+.scene svg .sc-emoji, .scene svg .sc-q { transform-box: view-box; transform-origin: 0 0; }
+.sc-kick { animation: scKick .9s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes scKick { 0%, 100% { transform: translateY(0) rotate(0); } 40% { transform: translateY(-5px) rotate(-14deg); } 60% { transform: translateY(-5px) rotate(14deg); } }
