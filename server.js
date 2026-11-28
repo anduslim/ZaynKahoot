@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const { Server } = require('socket.io');
 const store = require('./content-store');
 const judge = require('./judge');
+const tts = require('./tts');
 
 // Questions + settings: the admin panel's saved copy if there is one, otherwise content.js.
 // `edited` is the full list the admin edits (switched-off questions included); `content` is
@@ -101,6 +102,7 @@ const adminState = () => ({
   publicUrl: process.env.PUBLIC_URL || '',
   passwordFromEnv: !!process.env.ADMIN_PASSWORD,
   ai: judge.info(),
+  tts: tts.info(),
   previewKey: !!PREVIEW_KEY,
 });
 // AI judge address / model / key from Admin → Settings (saved in DATA_DIR/ai.json, wins over LLM_* env)
@@ -113,6 +115,27 @@ app.get('/api/admin/ai/models', adminOnly, async (req, res) => {
 app.post('/api/admin/ai-test', adminOnly, async (req, res) => {
   if (!judge.enabled()) return res.json({ ok: false, error: 'Set the AI address first' });
   try { res.json(await judge.test()); } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+// Natural voice (Speaches / any OpenAI-compatible /v1/audio/speech) from Admin → Settings, saved in DATA_DIR/tts.json
+app.put('/api/admin/tts', adminOnly, express.json({ limit: '8kb' }), (req, res) => {
+  try { res.json({ ok: true, tts: tts.setConfig(req.body || {}) }); } catch (e) { res.status(400).json({ error: e.message }); }
+});
+app.get('/api/admin/tts/voices', adminOnly, async (req, res) => {
+  if (!tts.enabled()) return res.json({ ok: false, error: 'Save the voice address first' });
+  res.json({ ok: true, ...(await tts.voices()) });
+});
+// The host screen (and Admin's Test button) fetch speech here; the quiz server talks to the speech app,
+// so only the server needs to reach it. Text is capped and answers are cached.
+let ttsBusy = 0;
+app.get('/api/tts', async (req, res) => {
+  if (!tts.enabled()) return res.status(404).json({ error: 'The natural voice is off' });
+  if (ttsBusy >= 4) return res.status(429).json({ error: 'Busy' });
+  ttsBusy++;
+  try {
+    const buf = await tts.speech(String(req.query.text || '').slice(0, tts.MAX_TEXT));
+    res.set('cache-control', 'private, max-age=3600').type('audio/mpeg').send(buf);
+  } catch (e) { res.status(502).json({ error: e.message }); }
+  finally { ttsBusy--; }
 });
 app.get('/api/admin/content', adminOnly, (req, res) => res.json(adminState()));
 app.get('/api/admin/defaults', adminOnly, (req, res) => res.json(store.defaults()));
@@ -175,6 +198,7 @@ app.get('/config.json', (req, res) => {
     wifiSsid: content.quizOnly ? '' : WIFI.ssid,
     wifiQr: WIFI.ssid && !content.quizOnly ? `WIFI:T:${WIFI.type};S:${esc(WIFI.ssid)};P:${esc(WIFI.password)};;` : '',
     publicUrl: process.env.PUBLIC_URL || '',
+    tts: tts.enabled(),
   });
 });
 

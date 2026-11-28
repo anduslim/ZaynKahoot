@@ -15,6 +15,7 @@ let lastTick = -1;
 fetch('/config.json').then((r) => r.json()).then((c) => {
   applyStyle(c.style);
   config = c;
+  Sound.setNatural(c.tts);
   const h = document.querySelector('.splash .brand'); if (h) h.innerHTML = brandHTML(c.title);
   document.title = c.title + ' · Host';
   if (S && S.phase === 'lobby') enter(S);
@@ -292,6 +293,7 @@ function intro(st) {
   </div>`);
   const t = token;
   Sound.speak(qq.text + (qq.hint ? '. ' + qq.hint : ''), () => setTimeout(() => t === token && advance(), 700));
+  if (qq.fact) Sound.prefetch(qq.fact);   // ready for the reveal
 }
 
 // ---- showcase (each option gets its moment on the big stage)
