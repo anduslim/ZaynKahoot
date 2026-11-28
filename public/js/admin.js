@@ -551,6 +551,28 @@
         <p class="muted small">Saved on the server (DATA_DIR/ai.json), not in the question sets. These win over the LLM_BASE_URL / LLM_MODEL / LLM_API_KEY settings. On Olares, when the model runs on the same Olares as the quiz, use the model app’s normal (Internal) entrance address.</p>
       </div>
       <div class="card">
+        <h3>Natural voice for the host screen</h3>
+        <p class="muted">${server.tts?.enabled ? `On: voice <b>${esc(server.tts.voice)}</b> from <code>${esc(server.tts.baseUrl)}</code>. If it stops answering, the browser’s voice reads instead.` : 'Off: the host screen uses the browser’s built-in voice.'}</p>
+        <div class="grid3">
+          ${field('Voice address (OpenAI-compatible)', `<input id="ttsUrl" value="${esc(server.tts?.baseUrl || '')}" placeholder="https://xxxxxxxx.you.olares.com/v1" autocapitalize="off" autocorrect="off" spellcheck="false">`, 'Speaches, Kokoro-FastAPI, LocalAI… Usually ends in /v1 (added for you). Blank = off.')}
+          ${field('Voice', `<input id="ttsVoice" value="${esc(server.tts?.voice || 'af_heart')}" list="ttsVoices" autocapitalize="off" autocorrect="off" spellcheck="false"><datalist id="ttsVoices"></datalist>`, '<a href="#" id="ttsList">List the voices</a> · af_ = American woman, am_ = American man, bf_/bm_ = British')}
+          ${field('Speed', `<select id="ttsSpeed">${[0.8, 0.85, 0.9, 0.95, 1, 1.1, 1.2].map((v) => `<option value="${v}" ${Number(server.tts?.speed || 1) === v ? 'selected' : ''}>${v === 1 ? 'Normal' : v < 1 ? `${v}× (slower)` : `${v}× (faster)`}</option>`).join('')}</select>`, 'A little slower is easier for younger kids.')}
+        </div>
+        <details class="small"><summary>More: model and API key</summary>
+          <div class="grid3">
+            ${field('Model', `<input id="ttsModel" value="${esc(server.tts?.model || '')}" placeholder="speaches-ai/Kokoro-82M-v1.0-ONNX" autocapitalize="off" autocorrect="off" spellcheck="false">`, 'Speaches on Olares ships with Kokoro; leave as is.')}
+            ${field('API key (optional)', `<input id="ttsKey" type="password" placeholder="${server.tts?.hasKey ? '•••••• saved (leave blank to keep)' : 'none'}" autocomplete="off">`, server.tts?.hasKey ? '<label><input type="checkbox" id="ttsKeyClear"> remove the saved key</label>' : '')}
+          </div>
+        </details>
+        <div class="row" style="flex-wrap:wrap">
+          <button class="btn primary" id="ttsSave">Save voice settings</button>
+          <button class="btn" id="ttsTest">▶ Hear it</button>
+          ${server.tts?.fromAdmin && server.tts?.env?.baseUrl ? '<button class="btn ghost" id="ttsReset">Use the server’s TTS_* settings</button>' : ''}
+          <span id="ttsResult" class="muted"></span>
+        </div>
+        <p class="muted small">Saved on the server (DATA_DIR/tts.json). The quiz server fetches the speech, so the address only has to work from the quiz server. On Olares, open the Speaches app’s entrances and use the Internal one, like the AI judge. After saving, reload the host screen.</p>
+      </div>
+      <div class="card">
         <h3>Preview for co-organisers</h3>
         <p>Share <a href="/preview" target="_blank"><b>/preview</b></a>: it lists every question set with the answers, and lets people try the questions, without joining the game. ${server.previewKey ? 'It needs the key in <code>PREVIEW_KEY</code>: share <code>/preview?key=…</code>.' : 'Anyone with the link can open it; set <code>PREVIEW_KEY</code> to lock it.'}</p>
       </div>`;
@@ -585,6 +607,39 @@
       } catch (err) { aiOut(err.message, true); }
     };
     const rs = $('#aiReset'); if (rs) rs.onclick = async () => { try { await saveAI({ clear: true }); renderSettings(); aiOut('Using the server’s LLM_* settings'); } catch (e) { aiOut(e.message, true); } };
+    const ttsOut = (msg, bad) => { const el = $('#ttsResult'); el.textContent = msg; el.style.color = bad ? '#FF9AA2' : bad === false ? '#8EF0A8' : ''; };
+    const saveTTS = async (body) => { const r = await api('PUT', '/api/admin/tts', body); server.tts = r.tts; return r.tts; };
+    let ttsAudio = null;
+    $('#ttsTest').onclick = async () => {
+      if (!server.tts?.enabled) return ttsOut('Save a voice address first', true);
+      ttsOut('Asking the voice server…');
+      const t0 = performance.now();
+      try {
+        const r = await fetch('/api/tts?text=' + encodeURIComponent(`Hello everyone! Welcome to the quiz. Get your phones ready, here comes the first question!`) + '&t=' + Date.now());
+        if (!r.ok) { const j = await r.json().catch(() => ({})); return ttsOut(`✕ ${j.error || 'The voice server failed (' + r.status + ')'}`, true); }
+        const url = URL.createObjectURL(await r.blob());
+        ttsAudio?.pause(); ttsAudio = new Audio(url); await ttsAudio.play();
+        ttsOut(`✓ Speaking (ready in ${((performance.now() - t0) / 1000).toFixed(1)}s)`, false);
+      } catch (e) { ttsOut(e.message, true); }
+    };
+    $('#ttsSave').onclick = async () => {
+      const body = { baseUrl: $('#ttsUrl').value, voice: $('#ttsVoice').value, speed: $('#ttsSpeed').value, model: $('#ttsModel').value };
+      if ($('#ttsKey').value) body.apiKey = $('#ttsKey').value; else if ($('#ttsKeyClear')?.checked) body.apiKey = '';
+      try { const v = await saveTTS(body); renderSettings(); ttsOut(v.enabled ? 'Saved. Testing…' : 'Saved. Natural voice is off'); if (v.enabled) $('#ttsTest').click(); }
+      catch (e) { ttsOut(e.message, true); }
+    };
+    $('#ttsList').onclick = async (e) => {
+      e.preventDefault();
+      if ($('#ttsUrl').value.trim() !== (server.tts?.baseUrl || '')) { ttsOut('Save the address first, then list the voices', true); return; }
+      ttsOut('Asking for the voices…');
+      try {
+        const r = await api('GET', '/api/admin/tts/voices');
+        if (!r.ok) return ttsOut(`✕ ${r.error}`, true);
+        $('#ttsVoices').innerHTML = r.voices.map((v) => `<option value="${esc(v)}">`).join('');
+        ttsOut(`${r.fromServer ? 'Voices' : 'Kokoro voices (the server did not list its own)'}: ${r.voices.slice(0, 30).join(', ')}${r.voices.length > 30 ? '…' : ''}. Tap the Voice box to pick one.`, false);
+      } catch (err) { ttsOut(err.message, true); }
+    };
+    const tr = $('#ttsReset'); if (tr) tr.onclick = async () => { try { await saveTTS({ clear: true }); renderSettings(); ttsOut('Using the server’s TTS_* settings'); } catch (e) { ttsOut(e.message, true); } };
     bindInputs($('#settingsTab'));
     $$('#settingsTab input[name="mode"]').forEach((r) => (r.onchange = () => { data.mode = r.value; renderSettings(); markDirty(); }));
     $$('#settingsTab .grow').forEach((row) => row.addEventListener('click', (e) => {

@@ -136,21 +136,75 @@ const Sound = (() => {
     if (master) master.gain.value = m ? 0 : 0.8;
   }
 
-  function speak(text, onend) {
+  // ---------------- voice
+  // Natural voice: the quiz server fetches an mp3 from the speech app on Olares (Speaches/Kokoro,
+  // set in Admin → Settings). If it is off, slow or fails, the browser's own voice reads instead.
+  let natural = false, voiceSrc = null, speakId = 0;
+  const voiceCache = new Map();   // text → Promise<AudioBuffer>
+  function setNatural(on) { natural = !!on; }
+
+  function fetchVoice(text) {
+    if (voiceCache.has(text)) return voiceCache.get(text);
+    const p = (async () => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 9000);
+      try {
+        const r = await fetch('/api/tts?text=' + encodeURIComponent(text), { signal: ctrl.signal });
+        if (!r.ok) throw new Error('tts ' + r.status);
+        const data = await r.arrayBuffer();
+        return await ctx.decodeAudioData(data);
+      } finally { clearTimeout(timer); }
+    })();
+    voiceCache.set(text, p);
+    p.catch(() => voiceCache.delete(text));
+    while (voiceCache.size > 40) voiceCache.delete(voiceCache.keys().next().value);
+    return p;
+  }
+  // warm up a line that will be spoken soon (e.g. the fun fact at the reveal)
+  function prefetch(text) {
+    text = String(text || '').trim();
+    if (natural && ctx && text) fetchVoice(text).catch(() => {});
+  }
+
+  function stopVoice() {
+    speakId++;
+    try { voiceSrc?.stop(); } catch (e) {}
+    voiceSrc = null;
+    try { window.speechSynthesis?.cancel(); } catch (e) {}
+  }
+
+  function browserSpeak(text, fin) {
     try {
-      if (!window.speechSynthesis || muted) { onend && setTimeout(onend, 2500); return; }
+      if (!window.speechSynthesis) { setTimeout(fin, 2500); return; }
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       const voices = speechSynthesis.getVoices();
       u.voice = voices.find((v) => /Samantha|Google UK English Female|Karen|Daniel/i.test(v.name)) || voices.find((v) => /^en/i.test(v.lang)) || null;
       u.rate = 0.95; u.pitch = 1.1;
-      let done = false;
-      const fin = () => { if (!done) { done = true; onend && onend(); } };
       u.onend = fin;
       setTimeout(fin, 1500 + text.length * 90); // safety net
       speechSynthesis.speak(u);
-    } catch (e) { onend && setTimeout(onend, 2500); }
+    } catch (e) { setTimeout(fin, 2500); }
   }
 
-  return { init, play, music, stopMusic, setMuted, isMuted: () => muted, speak };
+  function speak(text, onend) {
+    text = String(text || '').trim();
+    stopVoice();
+    const id = speakId;
+    let done = false;
+    const fin = () => { if (!done) { done = true; if (musicGain && id === speakId) musicGain.gain.value = 0.35; onend && onend(); } };
+    if (muted || !text) { setTimeout(fin, muted ? 2500 : 0); return; }
+    if (!natural || !ctx) { browserSpeak(text, fin); return; }
+    fetchVoice(text).then((buf) => {
+      if (id !== speakId) return fin();
+      if (muted) return setTimeout(fin, 500);
+      musicGain.gain.value = 0.12;   // music steps back while the voice talks
+      const s = ctx.createBufferSource(); s.buffer = buf; s.connect(master);
+      s.onended = fin;
+      setTimeout(fin, buf.duration * 1000 + 3000); // safety net
+      voiceSrc = s; s.start();
+    }).catch(() => { if (id === speakId) browserSpeak(text, fin); else fin(); });
+  }
+
+  return { init, play, music, stopMusic, setMuted, isMuted: () => muted, speak, prefetch, stopVoice, setNatural };
 })();
