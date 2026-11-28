@@ -369,13 +369,14 @@ function startGrading() {
   for (const p of activePlayers()) {
     clearVerdict(p);
     if (!hasText(p)) { p.verdict = false; p.verdictBy = 'blank'; continue; }
-    if (judge.localMatch(q, p.answer)) { p.verdict = true; p.verdictBy = 'match'; }
+    if (judge.localMatch(q, p.answer)) { p.verdict = true; p.verdictBy = 'match'; p.verdictReason = 'That matches the answer.'; }
   }
   runAI();
 }
 async function runAI() {
   const g = game, step = game.step, q = currentQ();
-  const list = activePlayers().filter((p) => hasText(p) && p.verdictBy !== 'host');
+  // the AI only gets the answers the word match could not settle, so it has less to write
+  const list = activePlayers().filter((p) => hasText(p) && p.verdictBy !== 'host' && p.verdictBy !== 'match');
   if (!judge.enabled()) { g.grading = { status: 'off' }; return; }
   if (!list.length) { g.grading = { status: 'done' }; return; }
   g.grading = { status: 'checking' };
